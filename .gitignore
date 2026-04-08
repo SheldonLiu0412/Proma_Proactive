@@ -1,0 +1,27 @@
+# Compiled output
+dist/
+build/
+*.js.map
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+
+# Temp files
+/tmp/
+*.tmp
+
+# Dream runtime data (lives in ~/.proma/dream/, not in this repo)
