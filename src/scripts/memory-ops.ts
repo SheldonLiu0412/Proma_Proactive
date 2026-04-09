@@ -18,7 +18,7 @@
  *   pref:touch --id <id> --source <sessionId>
  *
  *   sop:list                              列出所有 SOP 候选
- *   sop:create --title <t> --content <c> [--source <sessionId>]
+ *   sop:create --title <t> --source <sessionId> (--content <c> | --content-file <path>)
  *   sop:update --id <id> [--title <t>] [--status <s>] [--content <c>] [--source <sessionId>]
  *
  *   state:show                            显示运行状态
@@ -113,8 +113,8 @@ function prefList() {
 
 function prefAdd(opts: Record<string, string>) {
   const { category, subcategory, summary, detail, source } = opts;
-  if (!category || !summary) {
-    console.error("Required: --category, --summary");
+  if (!category || !subcategory || !summary || !detail || !source) {
+    console.error("Required: --category, --subcategory, --summary, --detail, --source");
     process.exit(1);
   }
 
@@ -125,13 +125,13 @@ function prefAdd(opts: Record<string, string>) {
   const pref: Preference = {
     id,
     category,
-    subcategory: subcategory || "",
+    subcategory,
     summary,
-    detail: detail || "",
+    detail,
     firstSeen: d,
-    firstSource: source || "",
+    firstSource: source,
     lastSeen: d,
-    lastSource: source || "",
+    lastSource: source,
     seenCount: 1,
   };
 
@@ -210,8 +210,8 @@ function prefDelete(opts: Record<string, string>) {
 
 function prefTouch(opts: Record<string, string>) {
   const { id, source } = opts;
-  if (!id) {
-    console.error("Required: --id");
+  if (!id || !source) {
+    console.error("Required: --id, --source");
     process.exit(1);
   }
 
@@ -255,9 +255,9 @@ function sopList() {
 }
 
 function sopCreate(opts: Record<string, string>) {
-  const { title, content, source } = opts;
-  if (!title) {
-    console.error("Required: --title");
+  const { title, content, "content-file": contentFile, source } = opts;
+  if (!title || !source) {
+    console.error("Required: --title, --source");
     process.exit(1);
   }
 
@@ -285,16 +285,24 @@ function sopCreate(opts: Record<string, string>) {
   index.push(entry);
   saveJson(PATHS.sopIndex, index);
 
-  // 写入 SOP 文件
+  // 写入 SOP 文件：优先从文件读取，其次 --content，最后报错（不写空壳）
   const filePath = join(PATHS.sopCandidates, fileName);
-  const md = content || `# ${title}\n\n> 创建于 ${d}\n\n## 观察到的模式\n\n(待填充)\n\n## 典型步骤\n\n(待填充)\n\n## 来源会话\n\n(待填充)\n\n## 固化建议\n\n(待填充)\n`;
+  let md: string;
+  if (contentFile && existsSync(contentFile)) {
+    md = readFileSync(contentFile, "utf-8");
+  } else if (content) {
+    md = content;
+  } else {
+    console.error(`Error: --content or --content-file required. SOP index entry created but file not written.`);
+    process.exit(1);
+  }
   writeFileSync(filePath, md, "utf-8");
 
   console.log(`Created SOP candidate ${id}: ${title} → ${fileName}`);
 }
 
 function sopUpdate(opts: Record<string, string>) {
-  const { id, title, status, content, source } = opts;
+  const { id, title, status, content, "content-file": contentFile, source } = opts;
   if (!id) {
     console.error("Required: --id");
     process.exit(1);
@@ -315,9 +323,11 @@ function sopUpdate(opts: Record<string, string>) {
 
   saveJson(PATHS.sopIndex, index);
 
-  // 更新文件内容（如果提供）
-  if (content) {
-    const filePath = join(PATHS.sopCandidates, entry.file);
+  // 更新文件内容：优先 --content-file，其次 --content
+  const filePath = join(PATHS.sopCandidates, entry.file);
+  if (contentFile && existsSync(contentFile)) {
+    writeFileSync(filePath, readFileSync(contentFile, "utf-8"), "utf-8");
+  } else if (content) {
     writeFileSync(filePath, content, "utf-8");
   }
 

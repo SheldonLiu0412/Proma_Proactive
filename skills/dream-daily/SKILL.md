@@ -46,7 +46,7 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 #### Step 1.3：读取所有摘要
 
 - 当摘要文件数量小于16时，依次读取每个生成的摘要文件，准备进入洞察阶段。
-- 当摘要文件数量大于16时，为避免上下文窗口不足，可以通过创建subagent分批洞察并返回洞察意见（一个读10条）
+- 当摘要文件数量大于16时，为避免上下文窗口不足，通过创建 SubAgent 分批洞察（一个读 10 条）。**每个 SubAgent 的 prompt 中必须要求其第一步读取 `~/.proma/dream/dream-agent-guide.md`。**
 
 ---
 
@@ -70,22 +70,28 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 **a) 用户画像**
 - 是否揭示了画像中缺失或需修正的信息？
 - 新技能、新角色、工作领域变化？
-- 需要多体会增强可信性，从简单几次会话记录推测用户画像是不易的，但如果是用户亲自表达的信息可以重视，例如用户主动说”我是INFJ”
-- **画像的写作风格**：profile.md 以 Proma（”我”）的视角、第三人称（”TA”）书写，像一篇自然流畅的人物介绍，而非简历或信息表。标题按主题分级（如”TA 是谁”、”开发习惯”→”语言与工具”/”工作节奏”/”对细节的态度”、”协作方式”、”还不太了解的部分”），将技术栈、工作习惯等细节自然融入叙述中，而非罗列。编程只是构成这个人的一部分——当发现新的身份或侧面时，增加新的标题段落。允许推测和联想，但要标注不确定性（”这或许解释了...”、”但这只是我的推测”）。更新画像时直接用 Read + Edit 工具编辑 `~/.proma/dream/profile.md`，局部修改即可。
+- **极度克制推测**：默认不推测。只记录有明确依据的信息（用户自述或多次一致行为）。不要从单次行为推断性格、动机或偏好。宁可画像短一些，也不要用推测填充篇幅
+- **画像的写作风格**：profile.md 以 Proma（”我”）的视角、第三人称（”TA”）书写。像 wiki 一样用 Markdown 标题做内容分级（`## 主题` > `### 子主题`），读者可快速跳到感兴趣的部分。语气要有亲切活人感，像朋友在介绍”我认识的一个人”，不是简历也不是数据表。不记录具体事件和技术细节，只提炼人物特质和能力轮廓。更新画像时直接用 Read + Edit 工具编辑 `~/.proma/dream/profile.md`，局部修改即可。
+- **不堆叠增加**：更新前先判断新信息是否与已有内容重叠或冗余，优先合并精简，而非一味追加。
+- **不留元信息**：画像正文中不出现”由 Dream 生成”、”最后更新于”、”基于 XXX 会话”等系统信息。
 
 **b) 偏好与习惯**
 - 新的偏好信号？（用户纠正 Agent、明确表达喜好、反复做同一选择）
 - 现有偏好被再次验证？（需要 touch）
 - 对现有偏好出现新的补充/更新内容？对现有偏好存在明确矛盾？（需要 edit 或 delete）
-- 注意：偏好要宁缺毋滥，以偏好质量高、有用和可信度高为重，而非偏好数量；category不要过多/区分过细。
+- **偏好质量标准**：
+  - **宁缺毋滥**：需多次出现或用户明确表达；单次行为不记录
+  - **通用化**：偏好描述应跨场景可复用，不要绑定具体项目/任务（❌"在 MIRROR 项目中偏好 X" → ✅"在 AI 对话设计中偏好 X"）
+  - **场景准确**：category/subcategory 要真实反映使用场景，不要为了分类而分类（category: coding/design/general；subcategory: git/workflow/ui/code-change/interaction）
+  - **字段完整**：pref:add 的四个内容字段全部必填——`--category`、`--subcategory`、`--summary`（一句话核心观察）、`--detail`（具体行为证据）、`--source`（会话 ID）；任何字段为空都不应提交
 
 **c) SOP/Skill 候选**
-- 用户是否在做多步骤的重复性工作？该梳理的目的是替用户梳理高度重复性工作，帮其固化工作流程，需要提炼的SOP应该满足一些特性例如：
-  - 任务较为固定&不能过于复杂
-  - 简单的可以通过创建skill完成固化，复杂的通过写代码开发轻应用/插件形式也可以固化提效；
-
-- 这个流程是否在之前的会话中也出现过？
-- 固化成 Skill/SOP 的价值有多大？
+- 目标是帮用户梳理**通用且重复**的工作流程并固化。关键判断：**如果用户下次再做同类事情，步骤是否基本一致？**
+- 必须**同时满足**：跨场景重复出现 + 步骤相对固定 + 复杂度适中 + 固化价值明确
+- **不应创建 SOP**：多次出现但每次要求/步骤都不同的任务（创造性工作）；与具体项目深度绑定无法迁移的操作；过于宽泛的描述（如"开发新功能"）
+- **核心判断**：不是"出现了几次"，而是"这个流程本身是否具有重复执行的性质"——换个项目、换个时间，步骤是否基本一致？
+- 简单的可通过创建 Skill 固化，复杂的可通过开发轻应用/插件固化提效
+- 详细的 SOP 识别标准和内容要求见 `~/.proma/dream/dream-agent-guide.md`
 
 #### Step 2.3：增量会话的特殊分析
 
@@ -111,6 +117,8 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 
 使用 `memory-ops.ts` 执行所有变更，如无必要不是每一项都需要更新，遵循长期记忆的学习质量最优而非数量最多原则，逐步操作并确认每个操作成功。
 
+> 完整的命令语法和示例见 `~/.proma/dream/dream-agent-guide.md`。以下为快速参考。
+
 ```bash
 # 画像：直接用 Read/Edit 工具操作 ~/.proma/dream/profile.md，无需脚本
 
@@ -120,9 +128,11 @@ npx tsx src/scripts/memory-ops.ts pref:edit --id <id> --summary "<s>" --detail "
 npx tsx src/scripts/memory-ops.ts pref:delete --id <id> --reason "<r>"
 npx tsx src/scripts/memory-ops.ts pref:touch --id <id> --source <sessionId>
 
-# SOP 候选
-npx tsx src/scripts/memory-ops.ts sop:create --title "<t>" --content "<markdown内容>" --source <sessionId>
-npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|validated|promoted> --source <sessionId>
+# SOP 候选（content 必须通过文件传入，不要直接用 --content 传多行文本）
+# 1. 先用 Write 工具把 SOP 内容写入临时文件
+# 2. 再用 --content-file 传给脚本
+npx tsx src/scripts/memory-ops.ts sop:create --title "<t>" --source <sessionId> --content-file /tmp/sop_draft.md
+npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|validated|promoted> --source <sessionId> [--content-file /tmp/sop_draft.md]
 
 # 标记完成
 npx tsx src/scripts/memory-ops.ts state:complete --sessions '["session-id-1","session-id-2"]'
