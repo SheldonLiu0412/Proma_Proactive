@@ -191,7 +191,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
    - 以 Proma 第一人称视角（"我"），回顾这次"初次认识用户"的过程
    - 不超过 600 字，散文风格，像刚结识一个新伙伴后写的日记
    - 参考最近一天的具体互动来写，但也可以提及从历史中获得的总体印象
-   - 禁忌：不用 bullet points、不写数据汇总、不用"主人"等称呼、不编造、自然称呼用户名字（Guaniu）或"他"
+   - 禁忌：不用 bullet points、不写数据汇总、不用"主人"等称呼、不编造、自然称呼用户名字（从 profile.md 标题获取）或"TA"
 4. 标记所有会话完成：state:complete
 ```
 

@@ -79,6 +79,9 @@ docs/
 │   └── YYYY-MM-DD.md           # 每日变更日志
 ├── diary/
 │   └── YYYY-MM-DD.md           # 每日散文日记
+├── dreams/
+│   ├── residues.json           # 滚动累积的潜意识残留池
+│   └── YYYY-MM-DD.md           # 每日梦境（含分镜）
 └── state.json                  # 运行状态与增量检测
 ```
 
