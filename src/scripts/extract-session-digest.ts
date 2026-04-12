@@ -457,16 +457,17 @@ function renderMarkdown(digest: SessionDigest): string {
     if (turn.userText) {
       // 截断过长的用户文本
       const userDisplay =
-        turn.userText.length > 500
-          ? turn.userText.slice(0, 500) + "\n...(截断)"
+        turn.userText.length > 300
+          ? turn.userText.slice(0, 300) + "\n...(截断)"
           : turn.userText;
       lines.push(`**用户**: ${userDisplay}`);
     }
 
     if (turn.assistantText) {
+      // Assistant 回复只保留前200字：Dream Agent 关注的是用户意图和工具操作，不需要完整回复
       const assistantDisplay =
-        turn.assistantText.length > 800
-          ? turn.assistantText.slice(0, 800) + "\n...(截断)"
+        turn.assistantText.length > 200
+          ? turn.assistantText.slice(0, 200) + "\n...(截断)"
           : turn.assistantText;
       lines.push(`**Agent**: ${assistantDisplay}`);
     }
