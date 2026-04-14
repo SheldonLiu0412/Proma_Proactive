@@ -1,0 +1,13 @@
+{
+  "name": "dream-init",
+  "version": "1.0.0",
+  "description": "Dream 系统初始化：从用户全部历史会话中构建初始记忆（画像、偏好、SOP）。支持首次初始化和全量重建。当用户说「初始化 dream」、「重建 dream 记忆」、「从头开始 dream」时使用。",
+  "numbered": true,
+  "components": [
+    "head",
+    "gather-all",
+    "load-memory",
+    "batch-analysis",
+    "footer-init"
+  ]
+}

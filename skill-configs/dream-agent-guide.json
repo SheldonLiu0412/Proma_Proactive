@@ -1,0 +1,16 @@
+{
+  "name": "dream-agent-guide",
+  "version": "1.0.0",
+  "description": "Dream SubAgent 工作规范完整指南",
+  "output": "docs/dream-agent-guide.md",
+  "hasFrontmatter": false,
+  "numbered": false,
+  "components": [
+    "guide/head",
+    "update-profile-and-prefs",
+    "update-sop",
+    "guide/state-complete",
+    "dream",
+    "guide/principles"
+  ]
+}
