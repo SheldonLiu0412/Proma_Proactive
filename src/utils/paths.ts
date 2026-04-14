@@ -23,4 +23,6 @@ export const PATHS = {
   journal: join(PROMA_DIR, "dream", "dream_log"),
   diary: join(PROMA_DIR, "dream", "diary"),
   state: join(PROMA_DIR, "dream", "state.json"),
+  correctionsActive: join(PROMA_DIR, "dream", "corrections", "active.json"),
+  correctionsArchive: join(PROMA_DIR, "dream", "corrections", "archive.jsonl"),
 };

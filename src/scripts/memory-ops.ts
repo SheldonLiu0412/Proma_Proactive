@@ -23,6 +23,8 @@
  *
  *   state:show                            显示运行状态
  *   state:complete --sessions <json-array>  标记会话处理完成
+ *
+ *   correction:add --type <agent-behavior|skill-update> --target <t> --summary <s> --detail <d> --source <sessionId>
  */
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
@@ -334,6 +336,58 @@ function sopUpdate(opts: Record<string, string>) {
   console.log(`Updated SOP ${id}`);
 }
 
+// ---------- Corrections 操作 ----------
+
+interface Correction {
+  id: string;
+  type: "agent-behavior" | "skill-update";
+  target: string;
+  summary: string;
+  detail: string;
+  source: string;
+  observedAt: string;
+  status: "pending" | "accepted" | "rejected";
+}
+
+function correctionAdd(opts: Record<string, string>) {
+  const { type, target, summary, detail, source } = opts;
+  if (!type || !target || !summary || !detail || !source) {
+    console.error("Required: --type, --target, --summary, --detail, --source");
+    process.exit(1);
+  }
+  if (type !== "agent-behavior" && type !== "skill-update") {
+    console.error('--type must be "agent-behavior" or "skill-update"');
+    process.exit(1);
+  }
+
+  const corrections = loadJson<Correction[]>(PATHS.correctionsActive, []);
+
+  // 去重：target + summary 高度相似则跳过
+  const duplicate = corrections.find(
+    (c) => c.target === target && c.summary === summary
+  );
+  if (duplicate) {
+    console.log(`Skipped (duplicate): ${duplicate.id} — ${summary}`);
+    return;
+  }
+
+  const id = genId("corr", corrections);
+  const entry: Correction = {
+    id,
+    type: type as Correction["type"],
+    target,
+    summary,
+    detail,
+    source,
+    observedAt: today(),
+    status: "pending",
+  };
+
+  corrections.push(entry);
+  saveJson(PATHS.correctionsActive, corrections);
+  console.log(`Added correction ${id} (${type}): ${summary}`);
+}
+
 // ---------- State 操作 ----------
 
 interface DreamState {
@@ -443,9 +497,12 @@ function main() {
     case "state:complete":
       return stateComplete(opts);
 
+    case "correction:add":
+      return correctionAdd(opts);
+
     default:
       console.error(`Unknown command: ${command}`);
-      console.error("Available: profile:show, pref:list/add/edit/delete/touch, sop:list/create/update, state:show/complete");
+      console.error("Available: profile:show, pref:list/add/edit/delete/touch, sop:list/create/update, state:show/complete, correction:add");
       process.exit(1);
   }
 }

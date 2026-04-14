@@ -8,6 +8,7 @@
     "gather-today",
     "load-memory",
     "analyze-sessions",
+    "extract-corrections",
     "update-profile-and-prefs",
     "update-sop",
     "write-dream-log",
