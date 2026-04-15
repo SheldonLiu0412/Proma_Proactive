@@ -17,10 +17,8 @@ description: "记忆系统初始化：从用户全部历史会话中构建初始
 ## 工作原则
 
 1. **宁缺毋滥**：只记录真正有信号的洞察，不要为了展现成果而随意扩充记忆
-2. **引用来源**：所有记忆操作都要附带 source（会话 ID）
-3. **时序优先**：早期会话的信息可能已过时，后期会话的信息更可信。当早期和晚期信息冲突时，以晚期为准
+3. **时序优先**：早期会话的信息可能已过时，当早期和晚期信息冲突时，以晚期为准
 4. **极度克制推测**：默认不推测，一切以无争议的事实为依据，只记录有明确依据的信息（用户自述或多次一致行为）
-5. **保持精简**：每条记忆应该是一句话能说清的核心观察
 6. **不覆盖已有文件**：如果发现当天的文件已存在，追加更新而不是覆盖
 7. **错误容忍**：如果某个工具脚本或文件操作失败，记录在日志中，不要中断整个流程
 8. **SubAgent 失败处理**：SubAgent 执行失败时（无论是 API 波动还是其他原因），只允许重试，**严禁**在主进程中替代执行其工作。重试 5 次仍失败后，终止当前任务并在最后输出错误标识符：`❌ MEMORY_SUBAGENT_FAILED`，不再继续后续阶段
@@ -39,9 +37,9 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 ```
 
 这会：
-1. 收集所有有效会话（已过滤 Dream 工作区、空会话、少于 2 轮的 Agent 会话）
+1. 收集所有有效会话（已过滤 Memory 运行的工作区、空Chat会话&少于 2 轮的 Agent 会话）
 2. 如果超过 80 条，优先保留 Agent 类型会话，再优先保留最近的
-3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读不完）
+3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读取失败）
 4. 自动为每个会话调用 extract-session-digest.ts，将摘要保存到 `/tmp/memory-init-digests/<sessionId>.md`
 
 ### Step 2：读取收集结果
@@ -63,7 +61,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 读取以下文件了解当前记忆状态：
 - `~/.proma/memory/profile.md` — 用户画像
-- `~/.proma/memory/preferences/active.json` — 当前偏好
+- `~/.proma/memory/corrections/active.json` — 当前纠正与偏好记录（含 agent-behavior、skill-update、user-preference 三类）
 - `~/.proma/memory/sop-candidates/index.json` — SOP 候选
 - `~/.proma/memory/state.json` — 运行状态
 - 最近的 memory_log 和 diary 文件（如果有）— 了解近期趋势和情绪基调
@@ -89,13 +87,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 1 批（共 M 批）。
 
-## 第一步：读取工作指南
-
-用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
-
-## 你的任务
-
-从以下 10 个会话中提取长期记忆，**创建**初始的 profile.md 和 preferences。
+首先用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 会话列表
 
@@ -103,21 +95,12 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ## 步骤
 
-1. 读取工作指南（上述第一步）
-2. 依次读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-3. 分析所有摘要，提取四类信息：
-   - **用户画像**：用户是谁、做什么工作、技术栈、工作习惯、性格特点
-   - **偏好与习惯**：用户纠正 Agent 的地方、明确表达的喜好、反复出现的选择模式
-   - **SOP 候选**：重复出现的多步骤工作流
-   - **Agent 行为纠正**：用户对 Agent 行为的纠正（识别标准见工作指南）
-4. 创建 profile.md（写作要求见工作指南）
-5. 执行记忆写入（命令语法见工作指南）
-6. 标记完成（见工作指南第 5 节）
+1. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
+2. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范见工作指南）
+3. 创建 profile.md，执行记忆写入（规范见工作指南）
+4. 标记完成（见工作指南）
 
-## 完成后输出
-
-在回复中输出一段总结（不要写入任何文件）：本批处理了哪些会话，创建/更新了哪些记忆，然后输出：
-✅ BATCH_1_COMPLETE
+在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_1_COMPLETE
 ```
 
 ---
@@ -127,13 +110,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 N 批（共 M 批）。
 
-## 第一步：读取工作指南
-
-用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
-
-## 你的任务
-
-从以下会话中提取长期记忆，在已有记忆基础上**迭代更新**。
+首先用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 会话列表
 
@@ -141,23 +118,12 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ## 步骤
 
-1. 读取工作指南（上述第一步）
-2. 读取当前记忆状态：
-   - 用 Read 工具完整读取 `~/.proma/memory/profile.md`
-   - 运行 `npx tsx src/scripts/memory-ops.ts pref:list`
-   - 运行 `npx tsx src/scripts/memory-ops.ts sop:list`
-3. 依次读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-4. **对比已有记忆**分析摘要：
-   - 画像中是否有需要补充或修正的信息？
-   - 是否发现新的偏好？已有偏好是否被再次验证（touch）或需要更新（edit）？
-   - 是否有新的 SOP 候选？已有 SOP 是否被再次观察到（update）？
-   - 是否有对 Agent 行为的新纠正？（识别标准见工作指南，去重后写入 corrections）
-5. 执行记忆更新（命令语法见工作指南）
-6. 标记完成（见工作指南第 5 节）
+1. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
+2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
+3. 对比已有记忆，迭代更新画像、SOP、纠正与偏好（规范见工作指南）
+4. 标记完成（见工作指南）
 
-## 完成后输出
-
-在回复中输出总结（不要写入任何文件）+ ✅ BATCH_N_COMPLETE
+在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_N_COMPLETE
 ```
 
 ---
@@ -167,20 +133,15 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 在迭代批的基础上，附加以下内容：
 
 ```
-## 额外要求：完整 Dream 流程
+## 额外要求
 
-这是最后一批，包含最近一天的会话。除了核心记忆提取外，还需要：
+这是最后一批，包含最近一天的会话。完成核心记忆迭代后，还需要：
 
-1. 完成所有核心记忆更新（profile、preferences、SOP）
-2. 撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`（用最近一天的日期）
-   - 此处的变更日志应覆盖**整个初始化过程**的成果，而非仅最后一批
-   - 内容：处理概况（总会话数、批次数）、最终记忆状态（画像要点、偏好数量、SOP 数量）、关键洞察
-3. 撰写日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`
-   - 以 Proma 第一人称视角（"我"），回顾这次"初次认识用户"的过程
-   - 不超过 600 字，散文风格，像刚结识一个新伙伴后写的日记
-   - 参考最近一天的具体互动来写，但也可以提及从历史中获得的总体印象
-   - 禁忌：不用 bullet points、不写数据汇总、不用"主人"等称呼、不编造
-4. 标记所有会话完成：state:complete
+1. 撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`（用最近一天的日期）
+   - 覆盖**整个初始化过程**的成果，而非仅最后一批
+   - 内容：处理概况（总会话数、批次数）、最终记忆状态、关键洞察
+2. 撰写初识日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`（写法见工作指南）
+3. 标记所有会话完成：`state:complete`
 ```
 
 ### 执行顺序

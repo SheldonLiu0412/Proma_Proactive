@@ -17,10 +17,8 @@ description: "执行每日记忆整合流程：从今日对话中提取长期记
 ## 工作原则
 
 1. **宁缺毋滥**：只记录真正有信号的洞察，不要为了展现成果而随意扩充记忆
-2. **引用来源**：所有记忆操作都要附带 source（会话 ID）
-3. **时序优先**：早期会话的信息可能已过时，后期会话的信息更可信。当早期和晚期信息冲突时，以晚期为准
+3. **时序优先**：早期会话的信息可能已过时，当早期和晚期信息冲突时，以晚期为准
 4. **极度克制推测**：默认不推测，一切以无争议的事实为依据，只记录有明确依据的信息（用户自述或多次一致行为）
-5. **保持精简**：每条记忆应该是一句话能说清的核心观察
 6. **不覆盖已有文件**：如果发现当天的文件已存在，追加更新而不是覆盖
 7. **错误容忍**：如果某个工具脚本或文件操作失败，记录在日志中，不要中断整个流程
 8. **SubAgent 失败处理**：SubAgent 执行失败时（无论是 API 波动还是其他原因），只允许重试，**严禁**在主进程中替代执行其工作。重试 5 次仍失败后，终止当前任务并在最后输出错误标识符：`❌ MEMORY_SUBAGENT_FAILED`，不再继续后续阶段
@@ -60,7 +58,7 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 
 读取以下文件了解当前记忆状态：
 - `~/.proma/memory/profile.md` — 用户画像
-- `~/.proma/memory/preferences/active.json` — 当前偏好
+- `~/.proma/memory/corrections/active.json` — 当前纠正与偏好记录（含 agent-behavior、skill-update、user-preference 三类）
 - `~/.proma/memory/sop-candidates/index.json` — SOP 候选
 - `~/.proma/memory/state.json` — 运行状态
 - 最近的 memory_log 和 diary 文件（如果有）— 了解近期趋势和情绪基调
@@ -189,13 +187,14 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 
 ## 阶段 5：更新用户画像
 
-**目标**：将洞察结果写入用户画像。用户偏好单独通过 `correction:add --type user-preference` 写入（见下一阶段）。
+**目标**：将洞察结果写入用户画像。。
 
 ### 更新用户画像
 
 直接用 Read + Edit 工具操作 `~/.proma/memory/profile.md`，局部修改即可。
 
 **画像写作规范**：
+
 - 视角：以 Proma（"我"）的口吻，第三人称（"TA"）书写（得知用户的会话昵称后用昵称，尽可能不使用用户真名）
 - 结构：用编号标题（`1` `1.1` `1.1.1`）做内容分级，**基本信息和行为模式放最上面**
 - 风格：像人物期刊——温暖、有情感色彩、鲜活。
@@ -215,7 +214,7 @@ npx tsx src/scripts/memory-ops.ts correction:add \
   - ❌负面例子：
     - **消息模型字段优先级：** 新消息用 `_channelModelId`（来自渠道配置），历史消息用 `message.model`（SDK 原始 ID），都没有时 fallback 到 `sessionModelId`。  （你看看这个负面例子——首先完全不通用且不长期；其次没有价值，对与用户日常交互没有任何指导，过于具体像流水账；最后这就是用户某次修一个具体bug的一个中间决策，属于完全不值得被记住的小事。）
 - **不堆叠增加**：更新前必须先判断新信息是否已被现有内容覆盖或可合并。**默认不加**——只有当明显缺失且长期有价值时才写入
-- **不留元信息**：画像正文中不出现"由 Dream 生成"、"最后更新于"等系统信息
+- **不留元信息**：画像正文中不出现"由 XXX 生成"、"最后更新于"等系统信息
 
 ## 阶段 6：更新 SOP 候选
 

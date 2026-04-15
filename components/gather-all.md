@@ -12,9 +12,9 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 ```
 
 这会：
-1. 收集所有有效会话（已过滤 Dream 工作区、空会话、少于 2 轮的 Agent 会话）
+1. 收集所有有效会话（已过滤 Memory 运行的工作区、空Chat会话&少于 2 轮的 Agent 会话）
 2. 如果超过 80 条，优先保留 Agent 类型会话，再优先保留最近的
-3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读不完）
+3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读取失败）
 4. 自动为每个会话调用 extract-session-digest.ts，将摘要保存到 `/tmp/memory-init-digests/<sessionId>.md`
 
 ### Step 2：读取收集结果
