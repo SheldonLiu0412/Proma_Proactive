@@ -13,16 +13,16 @@ export const PATHS = {
   workspaces: join(PROMA_DIR, "agent-workspaces.json"),
   workspacesDir: join(PROMA_DIR, "agent-workspaces"),
 
-  // Dream 存储目录
-  dream: join(PROMA_DIR, "dream"),
-  profile: join(PROMA_DIR, "dream", "profile.md"),
-  preferencesActive: join(PROMA_DIR, "dream", "preferences", "active.json"),
-  preferencesArchive: join(PROMA_DIR, "dream", "preferences", "archive.jsonl"),
-  sopCandidates: join(PROMA_DIR, "dream", "sop-candidates"),
-  sopIndex: join(PROMA_DIR, "dream", "sop-candidates", "index.json"),
-  journal: join(PROMA_DIR, "dream", "dream_log"),
-  diary: join(PROMA_DIR, "dream", "diary"),
-  state: join(PROMA_DIR, "dream", "state.json"),
-  correctionsActive: join(PROMA_DIR, "dream", "corrections", "active.json"),
-  correctionsArchive: join(PROMA_DIR, "dream", "corrections", "archive.jsonl"),
+  // Memory 存储目录
+  memory: join(PROMA_DIR, "memory"),
+  profile: join(PROMA_DIR, "memory", "profile.md"),
+  preferencesActive: join(PROMA_DIR, "memory", "preferences", "active.json"),
+  preferencesArchive: join(PROMA_DIR, "memory", "preferences", "archive.jsonl"),
+  sopCandidates: join(PROMA_DIR, "memory", "sop-candidates"),
+  sopIndex: join(PROMA_DIR, "memory", "sop-candidates", "index.json"),
+  journal: join(PROMA_DIR, "memory", "memory_log"),
+  diary: join(PROMA_DIR, "memory", "diary"),
+  state: join(PROMA_DIR, "memory", "state.json"),
+  correctionsActive: join(PROMA_DIR, "memory", "corrections", "active.json"),
+  correctionsArchive: join(PROMA_DIR, "memory", "corrections", "archive.jsonl"),
 };

@@ -1,8 +1,8 @@
 {
-  "name": "dream-agent-guide",
+  "name": "memory-agent-guide",
   "version": "1.0.0",
-  "description": "Dream SubAgent 工作规范完整指南",
-  "output": "docs/dream-agent-guide.md",
+  "description": "Memory SubAgent 工作规范完整指南",
+  "output": "docs/memory-agent-guide.md",
   "hasFrontmatter": false,
   "numbered": false,
   "components": [

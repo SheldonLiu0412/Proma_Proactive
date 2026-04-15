@@ -7,7 +7,7 @@
  *
  * 用法：
  *   node build.mjs              # 构建所有 skill-configs/ 下的配置
- *   node build.mjs dream-daily  # 只构建指定配置
+ *   node build.mjs memory-daily  # 只构建指定配置
  */
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'fs';

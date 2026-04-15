@@ -2,7 +2,7 @@
 
 **目标**：从会话摘要中提取有长期通用价值的 Agent 行为纠正，写入纠正记录。
 
-复用上一阶段已读取的会话摘要（无需重新读文件）。
+若已读取会话摘要，可以直接复用（已经在上下文中时无需重新读文件）。
 
 ### 识别标准
 
@@ -17,7 +17,7 @@ Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出
 **③ 负向行为信号**
 用户撤销、删除或要求恢复 Agent 的某个行动，且该行动在未来有可能再次出现（具有通用性）。
 
-### 过滤器（有任意一条则不记录）
+### 过滤器（列出的类型应避免记录）
 
 - 仅针对当前任务具体产物的修改（"把颜色改成红色"）
 - 语气、风格类调整
@@ -25,18 +25,18 @@ Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出
 
 ### 纠正类型判断
 
-- **skill-update**：错误发生在某个 Skill 执行期间，且错误根源与 Skill 内容直接相关（路径错误、命令错误、步骤描述不清）
+- **skill-update**：错误发生在某个 Skill 指导的工作期间，且错误根源与 Skill 内容直接相关（如路径错误、命令错误、步骤描述不清）
 - **agent-behavior**：与特定 Skill 无关的通用 Agent 行为模式（工具选择、输出习惯、文件操作行为等）
 
 ### target 取值规则
 
 - `"global"` — 适用于所有工作区的通用行为
 - `"workspace:<名称>"` — 仅适用于特定工作区（如 `workspace:Dream`）
-- `"skill:<名称>"` — 特定 Skill 的更新建议（如 `skill:dream-daily`）
+- `"skill:<名称>"` — 特定 Skill 的更新建议（如 `skill:memory-daily`）
 
 ### 写入流程
 
-1. 用 Read 工具读取 `~/.proma/dream/corrections/active.json`（不存在则初始化为 `[]`）
+1. 用 Read 工具读取 `~/.proma/memory/corrections/active.json`
 2. 对每条识别出的纠正，先检查是否已有 target + summary 高度相似的条目 → 有则跳过
 3. 新条目用 `correction:add` 写入：
 
@@ -53,7 +53,7 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 ```bash
 npx tsx src/scripts/memory-ops.ts correction:add \
   --type "skill-update" \
-  --target "skill:dream-daily" \
+  --target "skill:memory-daily" \
   --summary "<问题标签>" \
   --detail "<错误事实 + 具体更新建议>" \
   --source <sessionId>
@@ -63,4 +63,4 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 
 - **agent-behavior**：描述性语气，简洁，一两句话。例："向用户反问澄清时，使用 AskUserQuestion 工具呈现选项，避免在回复文字中直接列出问题"
 - **skill-update**：说明错误事实 + 应该怎么改。例："gather-today Step 1 的 --output 参数应补全 .json 扩展名，否则后续读取失败"
-- **禁忌**：不写"必须"、"严禁"等过强命令式措辞；不超过三句话
+- **注意**：不写"必须"、"严禁"等过强命令式措辞；不超过三句话

@@ -1,0 +1,13 @@
+{
+  "name": "memory-init",
+  "version": "1.0.0",
+  "description": "记忆系统初始化：从用户全部历史会话中构建初始记忆（画像、偏好、SOP）。支持首次初始化和全量重建。当用户说「初始化记忆」、「重建记忆」、「从头开始记忆初始化」时使用。",
+  "numbered": true,
+  "components": [
+    "head",
+    "gather-all",
+    "load-memory",
+    "batch-analysis",
+    "footer-init"
+  ]
+}

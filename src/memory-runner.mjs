@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * dream-runner.mjs
+ * memory-runner.mjs
  *
- * Dream 系统启动脚本。
- * 在 Dream 工作区中创建一个真实的 Proma 会话（注册到 agent-sessions.json），
- * 通过 Claude Agent SDK 执行 dream-daily 任务。
+ * Memory 系统启动脚本。
+ * 在 Memory 工作区中创建一个真实的 Proma 会话（注册到 agent-sessions.json），
+ * 通过 Claude Agent SDK 执行 memory-daily 任务。
  * 用户可在 Proma UI 中实时看到会话进度。
  *
  * 保活机制：周期检测完成标志，未完成则自动 resume。
  *
  * 用法：
- *   node src/dream-runner.mjs [--date YYYY-MM-DD] [--max-retries N] [--dry-run]
+ *   node src/memory-runner.mjs [--date YYYY-MM-DD] [--max-retries N] [--dry-run]
  *
  * 环境变量：
  *   ANTHROPIC_API_KEY — 必需
@@ -31,24 +31,24 @@ import { homedir } from "os";
 // ---------- 常量 ----------
 
 const PROMA_DIR = join(homedir(), ".proma");
-const DREAM_WORKSPACE_SLUG = "dream";
-const DREAM_WORKSPACE_ID = "c66bb370-20f4-4ed6-8d15-df6590476038";
-const DREAM_WORKSPACE_DIR = join(PROMA_DIR, "agent-workspaces", DREAM_WORKSPACE_SLUG);
+const MEMORY_WORKSPACE_SLUG = "dream";
+const MEMORY_WORKSPACE_ID = "c66bb370-20f4-4ed6-8d15-df6590476038";
+const MEMORY_WORKSPACE_DIR = join(PROMA_DIR, "agent-workspaces", MEMORY_WORKSPACE_SLUG);
 const SDK_CONFIG_DIR = join(PROMA_DIR, "sdk-config");
 const PROACTIVE_DIR = "/Users/jay/Documents/GitHub/Proma_Proactive";
 const SDK_CLI_PATH =
   "/Users/jay/Documents/GitHub/Proma/node_modules/@anthropic-ai/claude-agent-sdk/cli.js";
-const DREAM_WORKSPACE_FILES_DIR = join(DREAM_WORKSPACE_DIR, "workspace-files");
+const MEMORY_WORKSPACE_FILES_DIR = join(MEMORY_WORKSPACE_DIR, "workspace-files");
 
 const AGENT_SESSIONS_JSON = join(PROMA_DIR, "agent-sessions.json");
 const AGENT_SESSIONS_DIR = join(PROMA_DIR, "agent-sessions");
 
 // 与 Proma 正式会话对齐
 const MODEL_ID = "claude-sonnet-4-6";
-const DREAM_WORKSPACE_NAME = "Dream记忆巩固";
+const MEMORY_WORKSPACE_NAME = "Memory记忆巩固";
 
-// Dream 完成标志
-const COMPLETION_MARKER = "✅ DREAM_COMPLETE";
+// Memory 完成标志
+const COMPLETION_MARKER = "✅ MEMORY_COMPLETE";
 
 // 保活配置
 const MAX_RETRIES = parseInt(getArg("--max-retries") || "5");
@@ -92,7 +92,7 @@ function registerPromaSession(title) {
   const meta = {
     id: randomUUID(),
     title,
-    workspaceId: DREAM_WORKSPACE_ID,
+    workspaceId: MEMORY_WORKSPACE_ID,
     createdAt: now,
     updatedAt: now,
   };
@@ -139,7 +139,7 @@ function appendPromaMessage(promaSessionId, msg) {
 // ---------- 会话工作目录 ----------
 
 function createSessionCwd(promaSessionId) {
-  const sessionCwd = join(DREAM_WORKSPACE_DIR, promaSessionId);
+  const sessionCwd = join(MEMORY_WORKSPACE_DIR, promaSessionId);
 
   // 创建目录结构
   mkdirSync(join(sessionCwd, ".claude"), { recursive: true });
@@ -191,16 +191,16 @@ Agent 工具支持 \`model\` 参数（可选值：\`sonnet\` / \`opus\` / \`haik
 
 ## 工作区
 
-- 工作区名称: ${DREAM_WORKSPACE_NAME}
-- 工作区根目录: ~/.proma/agent-workspaces/${DREAM_WORKSPACE_SLUG}/
-- 当前会话目录（cwd）: ~/.proma/agent-workspaces/${DREAM_WORKSPACE_SLUG}/${sessionId}/
-- Skills 目录: ~/.proma/agent-workspaces/${DREAM_WORKSPACE_SLUG}/skills/
+- 工作区名称: ${MEMORY_WORKSPACE_NAME}
+- 工作区根目录: ~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/
+- 当前会话目录（cwd）: ~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/${sessionId}/
+- Skills 目录: ~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/skills/
 
 ### .context 目录层级
 
 存在两个 \`.context/\` 目录，用途不同：
 - **会话级** \`.context/\`（当前 cwd 下）：当前会话的临时工作台
-- **工作区级** \`~/.proma/agent-workspaces/${DREAM_WORKSPACE_SLUG}/workspace-files/.context/\`：跨会话共享的持久文档
+- **工作区级** \`~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/workspace-files/.context/\`：跨会话共享的持久文档
 
 ## 文档输出与知识管理
 
@@ -234,7 +234,7 @@ function buildDynamicContext(sessionCwd) {
   return `**当前时间: ${timeStr}**
 
 <workspace_state>
-工作区: ${DREAM_WORKSPACE_NAME}
+工作区: ${MEMORY_WORKSPACE_NAME}
 </workspace_state>
 
 <working_directory>${sessionCwd}</working_directory>`;
@@ -243,25 +243,25 @@ function buildDynamicContext(sessionCwd) {
 // ---------- Mentioned Tools 注入（复刻 Proma orchestrator） ----------
 
 function buildMentionedToolsPrefix() {
-  const qualifiedName = `proma-workspace-${DREAM_WORKSPACE_SLUG}:dream-daily`;
+  const qualifiedName = `proma-workspace-${MEMORY_WORKSPACE_SLUG}:memory-daily`;
   return `<mentioned_tools>
 用户在消息中明确引用了以下工具，请在本次回复中主动调用：
 - Skill: ${qualifiedName}（请立即调用此 Skill）
 </mentioned_tools>`;
 }
 
-// ---------- Dream Prompt ----------
+// ---------- Memory Prompt ----------
 
-function buildDreamPrompt(targetDate, sessionCwd) {
+function buildMemoryPrompt(targetDate, sessionCwd) {
   const dynamicCtx = buildDynamicContext(sessionCwd);
   const mentionPrefix = buildMentionedToolsPrefix();
 
-  const userMessage = `今天是 ${targetDate}，请执行 dream-daily 流程。
+  const userMessage = `今天是 ${targetDate}，请执行 memory-daily 流程。
 
 关键提示：
 - 工具脚本在 ${PROACTIVE_DIR}/src/scripts/ 下，使用 npx tsx 运行
 - 运行脚本时先 cd ${PROACTIVE_DIR}
-- Dream 存储在 ~/.proma/dream/ 下
+- Memory 存储在 ~/.proma/memory/ 下
 - 今日日期参数: --date ${targetDate}
 
 完成所有步骤后请输出完成标志：${COMPLETION_MARKER}`;
@@ -271,7 +271,7 @@ function buildDreamPrompt(targetDate, sessionCwd) {
 
 function buildResumePrompt(sessionCwd) {
   const dynamicCtx = buildDynamicContext(sessionCwd);
-  return `${dynamicCtx}\n\n你的 Dream 任务被中断了，请继续执行未完成的步骤。
+  return `${dynamicCtx}\n\n你的 Memory 任务被中断了，请继续执行未完成的步骤。
 完成后请输出完成标志：${COMPLETION_MARKER}`;
 }
 
@@ -323,8 +323,8 @@ function buildSdkOptions(sessionCwd, promaSessionId, resumeSessionId) {
     cwd: sessionCwd,
     env,
     // 对齐 Proma：工作区附加目录 + workspace-files 目录
-    additionalDirectories: [PROACTIVE_DIR, DREAM_WORKSPACE_FILES_DIR],
-    plugins: [{ type: "local", path: DREAM_WORKSPACE_DIR }],
+    additionalDirectories: [PROACTIVE_DIR, MEMORY_WORKSPACE_FILES_DIR],
+    plugins: [{ type: "local", path: MEMORY_WORKSPACE_DIR }],
     settingSources: ["user", "project"],
     maxTurns: 50,
     effort: "high",
@@ -358,7 +358,7 @@ async function runQuery(prompt, sessionCwd, resumeSessionId, promaSessionId) {
     "INFO",
     resumeSessionId
       ? `Resuming SDK session: ${resumeSessionId}`
-      : "Starting new Dream SDK session"
+      : "Starting new Memory SDK session"
   );
 
   // 持久化 user 消息到 Proma JSONL
@@ -487,7 +487,7 @@ async function runQuery(prompt, sessionCwd, resumeSessionId, promaSessionId) {
 
 async function main() {
   const targetDate = getTargetDate();
-  log("INFO", "=== Proma Dream Runner ===");
+  log("INFO", "=== Proma Memory Runner ===");
   log("INFO", `Target date: ${targetDate}`);
   log("INFO", `Max retries: ${MAX_RETRIES}`);
 
@@ -506,20 +506,20 @@ async function main() {
     log("INFO", "[DRY RUN] System prompt:");
     console.log(buildSystemPrompt("dry-run-session-id"));
     console.log("\n--- User prompt ---\n");
-    console.log(buildDreamPrompt(targetDate, "/tmp/dry-run-cwd"));
+    console.log(buildMemoryPrompt(targetDate, "/tmp/dry-run-cwd"));
     process.exit(0);
   }
 
   // 1. 在 Proma 元数据层注册会话
-  const title = `Dream ${targetDate}`;
+  const title = `Memory ${targetDate}`;
   const promaMeta = registerPromaSession(title);
   const promaSessionId = promaMeta.id;
 
   // 2. 创建会话工作目录
   const sessionCwd = createSessionCwd(promaSessionId);
 
-  // 3. 第一轮：发送 Dream 任务
-  const prompt = buildDreamPrompt(targetDate, sessionCwd);
+  // 3. 第一轮：发送 Memory 任务
+  const prompt = buildMemoryPrompt(targetDate, sessionCwd);
   let { sdkSessionId, completed } = await runQuery(
     prompt,
     sessionCwd,
@@ -560,11 +560,11 @@ async function main() {
   });
 
   if (completed) {
-    log("INFO", "=== Dream completed successfully ===");
+    log("INFO", "=== Memory completed successfully ===");
     log("INFO", `Proma session: ${promaSessionId}`);
     process.exit(0);
   } else {
-    log("ERROR", `=== Dream did not complete after ${MAX_RETRIES} retries ===`);
+    log("ERROR", `=== Memory did not complete after ${MAX_RETRIES} retries ===`);
     log("INFO", `Proma session: ${promaSessionId} (can resume manually)`);
     process.exit(1);
   }
