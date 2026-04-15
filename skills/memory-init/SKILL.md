@@ -96,11 +96,11 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 ## 步骤
 
 1. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-2. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范见工作指南）
+2. 分析摘要，提取记忆（详细需求及各类规范见工作指南）
 3. 创建 profile.md，执行记忆写入（规范见工作指南）
 4. 标记完成（见工作指南）
 
-在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_1_COMPLETE
+在最终回复中输出一段总结（不要额外写入任何文件），然后输出：✅ BATCH_1_COMPLETE
 ```
 
 ---
@@ -120,7 +120,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 1. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
 2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-3. 对比已有记忆，迭代更新画像、SOP、纠正与偏好（规范见工作指南）
+3. 对比已有记忆，进行迭代更新（规范见工作指南）
 4. 标记完成（见工作指南）
 
 在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_N_COMPLETE
@@ -153,7 +153,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 3. 重复直到所有历史批次完成
 4. 创建最后一批 SubAgent（最近一天 + 完整流程），等待完成
 
-每个 SubAgent 完成后，简要记录其产出（新增了什么记忆、更新了什么）。
+每个 SubAgent 完成后，通过直接输出的方式简要记录其产出（新增了什么记忆、更新了什么）。
 
 ## 验证与收尾
 
