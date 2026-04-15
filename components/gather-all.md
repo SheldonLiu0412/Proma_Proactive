@@ -30,4 +30,4 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ### Step 3：识别「最后一天」
 
-从 part2 的 `sessions` 数组末尾往前找，找出 `createdAtStr` 日期与最后一条相同的所有会话——这些是「最后一天」的会话，将在最终批次走完整 memory-daily 流程（含 diary + memory_log）。其余批次只提取核心记忆。
+从 part2 的 `sessions` 数组末尾往前找，找出 `createdAtStr` 日期与最后一条相同的所有会话——这些是「最后一天」的会话，将在最终批次专程走完整的 memory-daily 流程，其余批次只按要求提取核心记忆。

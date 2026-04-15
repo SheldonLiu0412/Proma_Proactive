@@ -27,4 +27,4 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 ### Step 3：读取所有摘要
 
 - 当摘要文件数量小于16时，依次读取每个生成的摘要文件，准备进入洞察阶段。**摘要文件较长时只读取核心段落，不需要逐字复述到回复中。**
-- 当摘要文件数量大于16时，为避免上下文窗口不足，通过创建 SubAgent 分批洞察（一个读 10 条）。**每个 SubAgent 的 prompt 中必须要求其第一步读取 `~/.proma/memory/memory-agent-guide.md`。**
+- 当摘要文件数量大于16时，为避免上下文窗口不足，通过创建 SubAgent 分批洞察（一个读 10 条）。**每个 SubAgent 的 prompt 中必须要求其第一步用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`。**

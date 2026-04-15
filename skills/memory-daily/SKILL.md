@@ -22,11 +22,8 @@ description: "执行每日记忆整合流程：从今日对话中提取长期记
 4. **极度克制推测**：默认不推测，一切以无争议的事实为依据，只记录有明确依据的信息（用户自述或多次一致行为）
 5. **保持精简**：每条记忆应该是一句话能说清的核心观察
 6. **不覆盖已有文件**：如果发现当天的文件已存在，追加更新而不是覆盖
-7. **错误容忍**：如果某个操作失败，记录在日志中，不要中断整个流程
-
-## 工作指南
-
-在开始任何分析工作前，必须用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范（画像写作风格、偏好质量标准、SOP 识别标准、命令语法等）。
+7. **错误容忍**：如果某个工具脚本或文件操作失败，记录在日志中，不要中断整个流程
+8. **SubAgent 失败处理**：SubAgent 执行失败时（无论是 API 波动还是其他原因），只允许重试，**严禁**在主进程中替代执行其工作。重试 5 次仍失败后，终止当前任务并在最后输出错误标识符：`❌ MEMORY_SUBAGENT_FAILED`，不再继续后续阶段
 
 ## 阶段 1：收集今日活跃会话
 
@@ -57,7 +54,7 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 ### Step 3：读取所有摘要
 
 - 当摘要文件数量小于16时，依次读取每个生成的摘要文件，准备进入洞察阶段。**摘要文件较长时只读取核心段落，不需要逐字复述到回复中。**
-- 当摘要文件数量大于16时，为避免上下文窗口不足，通过创建 SubAgent 分批洞察（一个读 10 条）。**每个 SubAgent 的 prompt 中必须要求其第一步读取 `~/.proma/memory/memory-agent-guide.md`。**
+- 当摘要文件数量大于16时，为避免上下文窗口不足，通过创建 SubAgent 分批洞察（一个读 10 条）。**每个 SubAgent 的 prompt 中必须要求其第一步用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`。**
 
 ## 阶段 2：加载存量记忆
 
@@ -185,8 +182,6 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 - **不堆叠增加**：更新前必须先判断新信息是否已被现有内容覆盖或可合并。**默认不加**——只有当信息明显缺失且长期有价值时才写入
 - **不留元信息**：画像正文中不出现"由 Dream 生成"、"最后更新于"等系统信息
 
-详细的写作规范和示例见 `~/.proma/memory/memory-agent-guide.md`。
-
 ### 更新偏好
 
 使用 `memory-ops.ts` 执行偏好操作：
@@ -243,8 +238,6 @@ npx tsx src/scripts/memory-ops.ts sop:create --title "<标题>" --source <sessio
 # 更新 SOP
 npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|validated|promoted> --source <sessionId> [--content-file /tmp/sop_draft.md]
 ```
-
-详细的 SOP 识别标准和内容要求见 `~/.proma/memory/memory-agent-guide.md`。
 
 ## 阶段 7：撰写变更日志
 

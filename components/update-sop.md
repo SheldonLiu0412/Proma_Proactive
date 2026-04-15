@@ -30,5 +30,3 @@ npx tsx src/scripts/memory-ops.ts sop:create --title "<标题>" --source <sessio
 # 更新 SOP
 npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|validated|promoted> --source <sessionId> [--content-file /tmp/sop_draft.md]
 ```
-
-详细的 SOP 识别标准和内容要求见 `~/.proma/memory/memory-agent-guide.md`。

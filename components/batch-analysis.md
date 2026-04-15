@@ -21,7 +21,7 @@
 
 ## 第一步：读取工作指南
 
-立即用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范（画像写作风格、偏好质量标准、命令语法等）。
+用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 你的任务
 
@@ -41,7 +41,7 @@
    - **SOP 候选**：重复出现的多步骤工作流
 4. 创建 profile.md（写作要求见工作指南）
 5. 执行记忆写入（命令语法见工作指南）
-6. 标记完成：`state:complete`
+6. 标记完成（见工作指南第 5 节）
 
 ## 完成后输出
 
@@ -58,7 +58,7 @@
 
 ## 第一步：读取工作指南
 
-立即用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
+用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 你的任务
 
@@ -81,7 +81,7 @@
    - 是否发现新的偏好？已有偏好是否被再次验证（touch）或需要更新（edit）？
    - 是否有新的 SOP 候选？已有 SOP 是否被再次观察到（update）？
 5. 执行记忆更新（命令语法见工作指南）
-6. 标记完成：`state:complete`
+6. 标记完成（见工作指南第 5 节）
 
 ## 完成后输出
 

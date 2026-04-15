@@ -22,11 +22,8 @@ description: "记忆系统初始化：从用户全部历史会话中构建初始
 4. **极度克制推测**：默认不推测，一切以无争议的事实为依据，只记录有明确依据的信息（用户自述或多次一致行为）
 5. **保持精简**：每条记忆应该是一句话能说清的核心观察
 6. **不覆盖已有文件**：如果发现当天的文件已存在，追加更新而不是覆盖
-7. **错误容忍**：如果某个操作失败，记录在日志中，不要中断整个流程
-
-## 工作指南
-
-在开始任何分析工作前，必须用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范（画像写作风格、偏好质量标准、SOP 识别标准、命令语法等）。
+7. **错误容忍**：如果某个工具脚本或文件操作失败，记录在日志中，不要中断整个流程
+8. **SubAgent 失败处理**：SubAgent 执行失败时（无论是 API 波动还是其他原因），只允许重试，**严禁**在主进程中替代执行其工作。重试 5 次仍失败后，终止当前任务并在最后输出错误标识符：`❌ MEMORY_SUBAGENT_FAILED`，不再继续后续阶段
 
 ## 阶段 1：收集全量历史会话
 
@@ -60,7 +57,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ### Step 3：识别「最后一天」
 
-从 part2 的 `sessions` 数组末尾往前找，找出 `createdAtStr` 日期与最后一条相同的所有会话——这些是「最后一天」的会话，将在最终批次走完整 memory-daily 流程（含 diary + memory_log）。其余批次只提取核心记忆。
+从 part2 的 `sessions` 数组末尾往前找，找出 `createdAtStr` 日期与最后一条相同的所有会话——这些是「最后一天」的会话，将在最终批次专程走完整的 memory-daily 流程，其余批次只按要求提取核心记忆。
 
 ## 阶段 2：加载存量记忆
 
@@ -94,7 +91,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ## 第一步：读取工作指南
 
-立即用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范（画像写作风格、偏好质量标准、命令语法等）。
+用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 你的任务
 
@@ -114,7 +111,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
    - **SOP 候选**：重复出现的多步骤工作流
 4. 创建 profile.md（写作要求见工作指南）
 5. 执行记忆写入（命令语法见工作指南）
-6. 标记完成：`state:complete`
+6. 标记完成（见工作指南第 5 节）
 
 ## 完成后输出
 
@@ -131,7 +128,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ## 第一步：读取工作指南
 
-立即用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
+用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 你的任务
 
@@ -154,7 +151,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
    - 是否发现新的偏好？已有偏好是否被再次验证（touch）或需要更新（edit）？
    - 是否有新的 SOP 候选？已有 SOP 是否被再次观察到（update）？
 5. 执行记忆更新（命令语法见工作指南）
-6. 标记完成：`state:complete`
+6. 标记完成（见工作指南第 5 节）
 
 ## 完成后输出
 
