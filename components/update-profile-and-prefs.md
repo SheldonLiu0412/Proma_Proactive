@@ -52,3 +52,4 @@ npx tsx src/scripts/memory-ops.ts pref:touch --id <id> --source <sessionId>
 - **通用化**：偏好描述应跨场景可复用，不要绑定具体项目/任务
 - **场景准确**：category/subcategory 要真实反映使用场景
 - **字段完整**：pref:add 的四个内容字段全部必填，任何字段为空都不应提交
+- **禁止创建额外文件**：所有偏好数据通过上述命令写入 `preferences/active.json`，不要创建 `preferences.md` 或其他任何临时/汇总文件

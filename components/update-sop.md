@@ -38,3 +38,5 @@ npx tsx src/scripts/memory-ops.ts sop:create --title "<标题>" --source <sessio
 # 更新 SOP
 npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|validated|promoted> --source <sessionId> [--content-file /tmp/sop_draft.md]
 ```
+
+**禁止创建额外文件**：SOP 内容通过上述命令写入 `sop-candidates/`，不要创建 `sop-and-corrections.md` 或其他任何临时/汇总文件。`/tmp/sop_draft.md` 仅用于传参，用完即弃。

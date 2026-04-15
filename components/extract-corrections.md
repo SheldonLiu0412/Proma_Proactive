@@ -64,3 +64,4 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 - **agent-behavior**：描述性语气，简洁（一两句话），不要出现batch/会话号等具体元信息，应是一种通用表述，例："向用户反问澄清时，使用 AskUserQuestion 工具呈现选项，避免在回复文字中直接列出问题"
 - **skill-update**：说明错误事实 + 应该怎么改。例："gather-today SKILL：其中 Step 1 的 --output 参数应补全 .json 扩展名，否则Agent常常会读取失败，额外造成Agent自行纠错和探索的成本"
 - **注意**：不写"必须"、"严禁"等过强命令式措辞；不超过三句话
+- **禁止创建额外文件**：所有纠正数据通过 `correction:add` 写入 `corrections/active.json`，不要创建任何临时/汇总文件
