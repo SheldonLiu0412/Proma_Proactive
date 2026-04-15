@@ -14,6 +14,12 @@ description: "记忆系统初始化：从用户全部历史会话中构建初始
 
 整个过程中，你只对 `~/.proma/memory/` 目录有写权限。`~/.proma/` 下的其他文件（agent-sessions.json、conversations.json、agent-sessions/、conversations/ 等）一律只读，严禁修改或删除。
 
+**结构化记忆文件（corrections、SOP）必须通过脚本写入**，严禁直接 Write/Edit：
+- corrections → `correction:add`
+- SOP → `sop:create` / `sop:update`
+
+直接写入会导致格式与脚本期望的结构不一致，破坏后续所有读取和迭代操作。唯一可以直接 Write 的文件是 `profile.md`、`memory_log/` 和 `diary/`。
+
 ## 工作原则
 
 1. **宁缺毋滥**：只记录真正有信号的洞察，不要为了展现成果而随意扩充记忆
@@ -90,10 +96,11 @@ npx tsx src/scripts/plan-batches.ts \
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[0].sessionIds`，获取本批会话 ID 列表
 2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
 3. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范见工作指南）
-4. 创建 profile.md，执行记忆写入（规范见工作指南）
-5. 标记完成（见工作指南）
+4. 用 Write 工具创建 `~/.proma/memory/profile.md`
+5. SOP、corrections、偏好**必须通过脚本写入**（`sop:create`、`correction:add`），严禁直接 Write/Edit 这些文件
+6. 标记完成（见工作指南）
 
-在最终回复中输出一段总结（不要额外写入任何文件），然后输出：✅ BATCH_1_COMPLETE
+以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），然后输出：✅ BATCH_1_COMPLETE
 ```
 
 ---
@@ -110,11 +117,11 @@ npx tsx src/scripts/plan-batches.ts \
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[N-1].sessionIds` 及 `batches[N-1].isLast`
 2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
 3. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-4. 对比已有记忆，进行迭代更新（规范见工作指南）
+4. 对比已有记忆，执行迭代更新（规范见工作指南）
 5. 若 `isLast: true`，额外执行最后一批流程（见下方）
 6. 标记完成（见工作指南）
 
-在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_N_COMPLETE
+以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），然后输出：✅ BATCH_N_COMPLETE
 ```
 
 ---
@@ -148,22 +155,19 @@ npx tsx src/scripts/plan-batches.ts \
 
 所有批次任务完成后：
 
-### 验证记忆完整性
+### 自审查
 
-```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
-npx tsx src/scripts/memory-ops.ts pref:list
-npx tsx src/scripts/memory-ops.ts sop:list
-npx tsx src/scripts/memory-ops.ts state:show
+创建 SubAgent，提供以下 prompt：
+
+```
+请执行 memory-init-review 流程，对本次初始化生成的所有记忆文件进行审查和修正。
+
+任务描述：从用户全量历史会话中构建初始记忆，生成了 profile.md、corrections、SOP 候选、memory_log、diary。
+
+审查规范参考：/Users/jay/Documents/GitHub/Proma_Proactive/skills/memory-init-review/SKILL.md
 ```
 
-读取 `~/.proma/memory/profile.md`，检查确认内容合理且符合要求。
-
-### 输出初始化报告
-
-- 总处理会话数
-- 最终记忆状态：画像摘要、偏好数量和列表、SOP 数量和列表等（不一定是这些，按照任务需求来）
-- 耗时和批次数
+等待 SubAgent 输出 `✅ MEMORY_REVIEW_COMPLETE`。
 
 ### 输出完成标志
 

@@ -8,6 +8,12 @@
 
 整个过程中，你只对 `~/.proma/memory/` 目录有写权限。`~/.proma/` 下的其他文件（agent-sessions.json、conversations.json、agent-sessions/、conversations/ 等）一律只读，严禁修改或删除。
 
+**结构化记忆文件（corrections、SOP）必须通过脚本写入**，严禁直接 Write/Edit：
+- corrections → `correction:add`
+- SOP → `sop:create` / `sop:update`
+
+直接写入会导致格式与脚本期望的结构不一致，破坏后续所有读取和迭代操作。唯一可以直接 Write 的文件是 `profile.md`、`memory_log/` 和 `diary/`。
+
 ## 工作原则
 
 1. **宁缺毋滥**：只记录真正有信号的洞察，不要为了展现成果而随意扩充记忆

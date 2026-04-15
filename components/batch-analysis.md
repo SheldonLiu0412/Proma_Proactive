@@ -24,8 +24,9 @@
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[0].sessionIds`，获取本批会话 ID 列表
 2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
 3. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范见工作指南）
-4. 创建 profile.md，执行记忆写入（规范见工作指南）
-5. 标记完成（见工作指南）
+4. 用 Write 工具创建 `~/.proma/memory/profile.md`
+5. SOP、corrections、偏好**必须通过脚本写入**（`sop:create`、`correction:add`），严禁直接 Write/Edit 这些文件
+6. 标记完成（见工作指南）
 
 以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），然后输出：✅ BATCH_1_COMPLETE
 ```

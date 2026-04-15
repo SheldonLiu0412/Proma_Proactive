@@ -2,22 +2,19 @@
 
 所有批次任务完成后：
 
-### 验证记忆完整性
+### 自审查
 
-```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
-npx tsx src/scripts/memory-ops.ts pref:list
-npx tsx src/scripts/memory-ops.ts sop:list
-npx tsx src/scripts/memory-ops.ts state:show
+创建 SubAgent，提供以下 prompt：
+
+```
+请执行 memory-init-review 流程，对本次初始化生成的所有记忆文件进行审查和修正。
+
+任务描述：从用户全量历史会话中构建初始记忆，生成了 profile.md、corrections、SOP 候选、memory_log、diary。
+
+审查规范参考：/Users/jay/Documents/GitHub/Proma_Proactive/skills/memory-init-review/SKILL.md
 ```
 
-读取 `~/.proma/memory/profile.md`，检查确认内容合理且符合要求。
-
-### 输出初始化报告
-
-- 总处理会话数
-- 最终记忆状态：画像摘要、偏好数量和列表、SOP 数量和列表等（不一定是这些，按照任务需求来）
-- 耗时和批次数
+等待 SubAgent 输出 `✅ MEMORY_REVIEW_COMPLETE`。
 
 ### 输出完成标志
 

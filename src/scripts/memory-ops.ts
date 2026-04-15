@@ -14,14 +14,17 @@
  *   sop:list                              列出所有 SOP 候选
  *   sop:create --title <t> --source <sessionId> (--content <c> | --content-file <path>)
  *   sop:update --id <id> [--title <t>] [--status <s>] [--content <c>] [--source <sessionId>]
+ *   sop:delete --id <id>
  *
  *   state:show                            显示运行状态
  *   state:complete --sessions <json-array>  标记会话处理完成
  *
- *   correction:add --type <agent-behavior|skill-update|user-preference> --target <t> --summary <s> --detail <d> --source <sessionId>
+ *   correction:add    --type <agent-behavior|skill-update|user-preference> --target <t> --summary <s> --detail <d> --source <sessionId>
+ *   correction:edit   --id <id> [--summary <s>] [--detail <d>] [--type <t>] [--target <t>]
+ *   correction:delete --id <id>
  */
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
 import { PATHS } from "../utils/paths.js";
 
@@ -185,6 +188,33 @@ function sopUpdate(opts: Record<string, string>) {
   console.log(`Updated SOP ${id}`);
 }
 
+function sopDelete(opts: Record<string, string>) {
+  const { id } = opts;
+  if (!id) {
+    console.error("Required: --id");
+    process.exit(1);
+  }
+
+  const index = loadJson<SopEntry[]>(PATHS.sopIndex, []);
+  const idx = index.findIndex((s) => s.id === id);
+  if (idx === -1) {
+    console.error(`SOP ${id} not found`);
+    process.exit(1);
+  }
+
+  const entry = index[idx];
+  const filePath = join(PATHS.sopCandidates, entry.file);
+  index.splice(idx, 1);
+  saveJson(PATHS.sopIndex, index);
+
+  // 删除 SOP 文件（如存在）
+  if (existsSync(filePath)) {
+    try { unlinkSync(filePath); } catch { /* ignore */ }
+  }
+
+  console.log(`Deleted SOP ${id}: ${entry.title}`);
+}
+
 // ---------- Corrections 操作 ----------
 
 interface Correction {
@@ -235,6 +265,52 @@ function correctionAdd(opts: Record<string, string>) {
   corrections.push(entry);
   saveJson(PATHS.correctionsActive, corrections);
   console.log(`Added correction ${id} (${type}): ${summary}`);
+}
+
+function correctionEdit(opts: Record<string, string>) {
+  const { id, summary, detail, type, target } = opts;
+  if (!id) {
+    console.error("Required: --id");
+    process.exit(1);
+  }
+
+  const corrections = loadJson<Correction[]>(PATHS.correctionsActive, []);
+  const entry = corrections.find((c) => c.id === id);
+  if (!entry) {
+    console.error(`Correction ${id} not found`);
+    process.exit(1);
+  }
+
+  // 归档旧版本
+  appendJsonl(PATHS.correctionsArchive, { action: "edit", old: { ...entry }, date: today() });
+
+  if (summary) entry.summary = summary;
+  if (detail) entry.detail = detail;
+  if (type) entry.type = type as Correction["type"];
+  if (target) entry.target = target;
+
+  saveJson(PATHS.correctionsActive, corrections);
+  console.log(`Edited correction ${id}`);
+}
+
+function correctionDelete(opts: Record<string, string>) {
+  const { id } = opts;
+  if (!id) {
+    console.error("Required: --id");
+    process.exit(1);
+  }
+
+  const corrections = loadJson<Correction[]>(PATHS.correctionsActive, []);
+  const idx = corrections.findIndex((c) => c.id === id);
+  if (idx === -1) {
+    console.error(`Correction ${id} not found`);
+    process.exit(1);
+  }
+
+  appendJsonl(PATHS.correctionsArchive, { action: "delete", old: { ...corrections[idx] }, date: today() });
+  corrections.splice(idx, 1);
+  saveJson(PATHS.correctionsActive, corrections);
+  console.log(`Deleted correction ${id} (archived)`);
 }
 
 // ---------- State 操作 ----------
@@ -329,6 +405,8 @@ function main() {
       return sopCreate(opts);
     case "sop:update":
       return sopUpdate(opts);
+    case "sop:delete":
+      return sopDelete(opts);
 
     case "state:show":
       return stateShow();
@@ -337,10 +415,14 @@ function main() {
 
     case "correction:add":
       return correctionAdd(opts);
+    case "correction:edit":
+      return correctionEdit(opts);
+    case "correction:delete":
+      return correctionDelete(opts);
 
     default:
       console.error(`Unknown command: ${command}`);
-      console.error("Available: profile:show, sop:list/create/update, state:show/complete, correction:add");
+      console.error("Available: profile:show, sop:list/create/update/delete, state:show/complete, correction:add/edit/delete");
       process.exit(1);
   }
 }

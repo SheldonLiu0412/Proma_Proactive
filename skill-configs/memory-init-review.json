@@ -1,0 +1,14 @@
+{
+  "name": "memory-init-review",
+  "version": "1.0.0",
+  "description": "Memory 初始化完成后的自审查：检查所有生成的记忆文件格式和内容质量，修正问题。",
+  "numbered": true,
+  "components": [
+    "review/head",
+    "review/profile",
+    "review/corrections",
+    "review/sop",
+    "review/diary",
+    "review/footer"
+  ]
+}
