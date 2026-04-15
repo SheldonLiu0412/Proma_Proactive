@@ -27,7 +27,7 @@
 4. 创建 profile.md，执行记忆写入（规范见工作指南）
 5. 标记完成（见工作指南）
 
-在最终回复中输出一段总结（不要额外写入任何文件），然后输出：✅ BATCH_1_COMPLETE
+以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），然后输出：✅ BATCH_1_COMPLETE
 ```
 
 ---
@@ -44,11 +44,11 @@
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[N-1].sessionIds` 及 `batches[N-1].isLast`
 2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
 3. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-4. 对比已有记忆，进行迭代更新（规范见工作指南）
+4. 对比已有记忆，执行迭代更新（规范见工作指南）
 5. 若 `isLast: true`，额外执行最后一批流程（见下方）
 6. 标记完成（见工作指南）
 
-在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_N_COMPLETE
+以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），然后输出：✅ BATCH_N_COMPLETE
 ```
 
 ---
