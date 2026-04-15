@@ -42,20 +42,18 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读取失败）
 4. 自动为每个会话调用 extract-session-digest.ts，将摘要保存到 `/tmp/memory-init-digests/<sessionId>.md`
 
-### Step 2：读取收集结果
+### Step 2：计算分批方案
 
-用 **Read 工具**分别读取两个文件（不要用 cat/python3 解析）：
-- `/tmp/memory-init-sessions-part1.json`
-- `/tmp/memory-init-sessions-part2.json`
+```bash
+cd /Users/jay/Documents/GitHub/Proma_Proactive
+npx tsx src/scripts/plan-batches.ts \
+  --mode init \
+  --input /tmp/memory-init-sessions-part1.json \
+  --input2 /tmp/memory-init-sessions-part2.json \
+  --output /tmp/memory-init-batches.json
+```
 
-从中记下：
-- `summary.totalValid`：总有效会话数（两个文件中的 summary 相同，记录的是总数）
-- 合并两个文件的 `sessions` 数组，第一个文件的首条 `createdAtStr` 到第二个文件末条的 `createdAtStr`：日期范围
-- 脚本的终端输出中有摘要提取成功/失败数量
-
-### Step 3：识别「最后一天」
-
-从 part2 的 `sessions` 数组末尾往前找，找出 `createdAtStr` 日期与最后一条相同的所有会话——这些是「最后一天」的会话，将在最终批次专程走完整的 memory-daily 流程，其余批次只按要求提取核心记忆。
+终端输出会打印批次概况（总会话数、总批次数、每批会话数）。批次详情（每批的 sessionIds）存入 `/tmp/memory-init-batches.json`，**暂不读取**，在布置 SubAgent 时按需读取对应批次即可。
 
 ## 阶段 2：加载存量记忆
 
@@ -68,13 +66,11 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ## 阶段 3：分批分析与记忆构建
 
-**目标**：将全量历史会话按时间顺序分批，通过 SubAgent 顺序处理构建初始记忆。
+**目标**：按预先计算好的批次方案，通过 SubAgent 顺序处理构建初始记忆。
 
-### 分批规则
+### 读取批次方案
 
-1. 按 sessions 数组顺序（已按 createdAt 升序），每 10 个一批
-2. **最后一天的会话单独成一批**（即使不满 10 个），作为最后一个批次
-3. 如果最后一天的会话原本就在最后一批中且总数 ≤ 10，不需要额外拆分，直接作为单独一批
+终端输出（来自 gather-all 阶段的 plan-batches.ts）已打印批次概况，记下 `totalBatches` 即可。**不要用 Read 工具读取批次文件**，批次详情由 SubAgent 自己读取。
 
 ### SubAgent 任务模板
 
@@ -89,16 +85,13 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 首先用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
-## 会话列表
-
-[粘贴本批次的会话 JSON 数组]
-
 ## 步骤
 
-1. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-2. 分析摘要，提取记忆（详细需求及各类规范见工作指南）
-3. 创建 profile.md，执行记忆写入（规范见工作指南）
-4. 标记完成（见工作指南）
+1. 读取 `/tmp/memory-init-batches.json` 中 `batches[0].sessionIds`，获取本批会话 ID 列表
+2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
+3. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范见工作指南）
+4. 创建 profile.md，执行记忆写入（规范见工作指南）
+5. 标记完成（见工作指南）
 
 在最终回复中输出一段总结（不要额外写入任何文件），然后输出：✅ BATCH_1_COMPLETE
 ```
@@ -112,30 +105,26 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 首先用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
 
-## 会话列表
-
-[粘贴本批次的会话 JSON 数组]
-
 ## 步骤
 
-1. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
-2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-3. 对比已有记忆，进行迭代更新（规范见工作指南）
-4. 标记完成（见工作指南）
+1. 读取 `/tmp/memory-init-batches.json` 中 `batches[N-1].sessionIds` 及 `batches[N-1].isLast`
+2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
+3. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
+4. 对比已有记忆，进行迭代更新（规范见工作指南）
+5. 若 `isLast: true`，额外执行最后一批流程（见下方）
+6. 标记完成（见工作指南）
 
 在回复中输出一段总结（不要写入任何文件），然后输出：✅ BATCH_N_COMPLETE
 ```
 
 ---
 
-**最后一批（最近一天）的额外要求：**
-
-在迭代批的基础上，附加以下内容：
+**最后一批额外流程（`isLast: true` 时执行）：**
 
 ```
-## 额外要求
+## 额外要求（isLast: true）
 
-这是最后一批，包含最近一天的会话。完成核心记忆迭代后，还需要：
+完成核心记忆迭代后，还需要：
 
 1. 撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`（用最近一天的日期）
    - 覆盖**整个初始化过程**的成果，而非仅最后一批
@@ -146,14 +135,14 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 
 ### 执行顺序
 
-**重要：SubAgent 必须按顺序执行，不能并行。** 因为后续批次需要在前一批的记忆基础上迭代。
+**重要：SubAgent 必须按顺序执行，不能并行。** 后续批次需要在前一批的记忆基础上迭代。
 
-1. 创建第 1 批 SubAgent（创建批），等待完成
-2. 确认 `✅ BATCH_1_COMPLETE` 后，创建第 2 批 SubAgent（迭代批），等待完成
-3. 重复直到所有历史批次完成
-4. 创建最后一批 SubAgent（最近一天 + 完整流程），等待完成
+按 `totalBatches` 循环，每次只需在 prompt 中告知 SubAgent 当前批次序号（N），SubAgent 会自己从批次文件中读取对应的 `sessionIds` 和 `isLast`：
+- 第 1 批：使用创建批模板
+- 第 2 批起：使用迭代批模板
+- 收到 `✅ BATCH_N_COMPLETE` 后再发起下一批
 
-每个 SubAgent 完成后，通过直接输出的方式简要记录其产出（新增了什么记忆、更新了什么）。
+每批完成后在回复中简要记录产出，不写入任何文件。
 
 ## 验证与收尾
 

@@ -17,17 +17,15 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读取失败）
 4. 自动为每个会话调用 extract-session-digest.ts，将摘要保存到 `/tmp/memory-init-digests/<sessionId>.md`
 
-### Step 2：读取收集结果
+### Step 2：计算分批方案
 
-用 **Read 工具**分别读取两个文件（不要用 cat/python3 解析）：
-- `/tmp/memory-init-sessions-part1.json`
-- `/tmp/memory-init-sessions-part2.json`
+```bash
+cd /Users/jay/Documents/GitHub/Proma_Proactive
+npx tsx src/scripts/plan-batches.ts \
+  --mode init \
+  --input /tmp/memory-init-sessions-part1.json \
+  --input2 /tmp/memory-init-sessions-part2.json \
+  --output /tmp/memory-init-batches.json
+```
 
-从中记下：
-- `summary.totalValid`：总有效会话数（两个文件中的 summary 相同，记录的是总数）
-- 合并两个文件的 `sessions` 数组，第一个文件的首条 `createdAtStr` 到第二个文件末条的 `createdAtStr`：日期范围
-- 脚本的终端输出中有摘要提取成功/失败数量
-
-### Step 3：识别「最后一天」
-
-从 part2 的 `sessions` 数组末尾往前找，找出 `createdAtStr` 日期与最后一条相同的所有会话——这些是「最后一天」的会话，将在最终批次专程走完整的 memory-daily 流程，其余批次只按要求提取核心记忆。
+终端输出会打印批次概况（总会话数、总批次数、每批会话数）。批次详情（每批的 sessionIds）存入 `/tmp/memory-init-batches.json`，**暂不读取**，在布置 SubAgent 时按需读取对应批次即可。

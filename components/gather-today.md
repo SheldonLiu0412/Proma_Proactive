@@ -24,7 +24,16 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|chat> --title "<title>" --from <incrementalFrom> --output /tmp/memory-digest-<sessionId>.md
 ```
 
-### Step 3：读取所有摘要
+### Step 3：计算分批方案
 
-- 当摘要文件数量小于16时，依次读取每个生成的摘要文件，准备进入洞察阶段。**摘要文件较长时只读取核心段落，不需要逐字复述到回复中。**
-- 当摘要文件数量大于16时，为避免上下文窗口不足，通过创建 SubAgent 分批洞察（一个读 10 条）。**每个 SubAgent 的 prompt 中必须要求其第一步用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`。**
+```bash
+cd /Users/jay/Documents/GitHub/Proma_Proactive
+npx tsx src/scripts/plan-batches.ts \
+  --mode daily \
+  --input /tmp/memory-gather.json \
+  --output /tmp/memory-daily-batches.json
+```
+
+终端输出会打印 `NeedsBatching: true/false` 和批次概况：
+- **`NeedsBatching: false`**：直接读取所有摘要文件进入下一阶段（无需 SubAgent）
+- **`NeedsBatching: true`**：通过 SubAgent 分批处理，批次详情见 `/tmp/memory-daily-batches.json`（布置 SubAgent 时按需读取）
