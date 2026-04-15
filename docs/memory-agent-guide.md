@@ -13,47 +13,35 @@
 - **只读**：`~/.proma/` 下的其他一切（agent-sessions.json、conversations.json、会话日志等）
 - **临时文件**：可写 `/tmp/` 下的临时文件（如 SOP 草稿）
 
-## 更新用户画像和偏好
+## 更新用户画像
 
-**目标**：将洞察结果写入记忆存储。
+**目标**：将洞察结果写入用户画像。用户偏好单独通过 `correction:add --type user-preference` 写入（见下一阶段）。
 
 ### 更新用户画像
 
 直接用 Read + Edit 工具操作 `~/.proma/memory/profile.md`，局部修改即可。
 
 **画像写作规范**：
-- 视角：以 Proma（"我"）的口吻，第三人称（"TA"）书写（得知用户昵称后用昵称）
+- 视角：以 Proma（"我"）的口吻，第三人称（"TA"）书写（得知用户的会话昵称后用昵称，尽可能不使用用户真名）
 - 结构：用编号标题（`1` `1.1` `1.1.1`）做内容分级，**基本信息和行为模式放最上面**
-- 风格：像人物期刊——温暖、有情感色彩、鲜活。**从事件中读人，而非记事件**
+- 风格：像人物期刊——温暖、有情感色彩、鲜活。
+- 内容：**从事件中读人，而非记事件**
+  - 再次强调！画像的全部语言都在描述用户本身，而非记住用户做过什么，做的细节是什么；
+  - ✅正面例子：
+    - Bug 修复能力强，能够从日志审查到根因分析再到最小化改动的完整流程； （从一系列任务中提炼出了用户的能力和形象）
+
+  - ❌负面例子：
+    - 设计了 Proma 的长期记忆系统架构，包括用户画像（profile.md）、偏好习惯（preferences/）、SOP 候选（sop-candidates/）、梦境日记（diary/）等分层存储   （这全都是具体的事情细节，而非用户形象）
+
 - 最后章节：固定为"Agent 需知"——记录操作性知识（环境事实、项目约定、工具特性）
-  - 这部分切记只记录对用户长期有用、完全可信（得到用户明确认可的信息），不要做任何自以为是的推测或是盲目添加
-
-- **不堆叠增加**：更新前必须先判断新信息是否已被现有内容覆盖或可合并。**默认不加**——只有当信息明显缺失且长期有价值时才写入
+  - 这部分切记——只记录对用户长期有用、完全可信（得到用户明确认可的信息），不要做任何自以为是的推测或是盲目添加；
+  - 作为长期记录应该具有极强的通用性，而不是今天看到什么写什么，你是在提炼长期关注事项；例如发现用户最近一天连续调研了XXX，但这属于特定任务，作为你无须长期关注，中间的研究过程和结果就更是没有必要记录。
+  - ✅正面例子：
+    - **用户的Python环境**：包括Python 3.13（Homebrew），3.12（Anaconda），常用的是前者，后者专用于机器学习任务；
+  - ❌负面例子：
+    - **消息模型字段优先级：** 新消息用 `_channelModelId`（来自渠道配置），历史消息用 `message.model`（SDK 原始 ID），都没有时 fallback 到 `sessionModelId`。  （你看看这个负面例子——首先完全不通用且不长期；其次没有价值，对与用户日常交互没有任何指导，过于具体像流水账；最后这就是用户某次修一个具体bug的一个中间决策，属于完全不值得被记住的小事。）
+- **不堆叠增加**：更新前必须先判断新信息是否已被现有内容覆盖或可合并。**默认不加**——只有当明显缺失且长期有价值时才写入
 - **不留元信息**：画像正文中不出现"由 Dream 生成"、"最后更新于"等系统信息
-
-### 更新偏好
-
-使用 `memory-ops.ts` 执行偏好操作：
-
-```bash
-# 新增偏好（四个内容字段全部必填）
-npx tsx src/scripts/memory-ops.ts pref:add --category <coding|design|general> --subcategory <git|workflow|ui|code-change|interaction> --summary "<一句话核心观察>" --detail "<具体行为证据>" --source <sessionId>
-
-# 修改偏好
-npx tsx src/scripts/memory-ops.ts pref:edit --id <id> --summary "<s>" --detail "<d>" --reason "<r>" --source <sessionId>
-
-# 删除偏好
-npx tsx src/scripts/memory-ops.ts pref:delete --id <id> --reason "<r>"
-
-# 标记加强（偏好被再次验证）
-npx tsx src/scripts/memory-ops.ts pref:touch --id <id> --source <sessionId>
-```
-
-**偏好质量标准**：
-- **宁缺毋滥**：需多次出现或用户明确表达；单次行为不记录
-- **通用化**：偏好描述应跨场景可复用，不要绑定具体项目/任务
-- **场景准确**：category/subcategory 要真实反映使用场景
-- **字段完整**：pref:add 的四个内容字段全部必填，任何字段为空都不应提交
 
 ## 更新 SOP 候选
 
@@ -66,7 +54,7 @@ npx tsx src/scripts/memory-ops.ts pref:touch --id <id> --source <sessionId>
 - 适于固化：步骤相对固定，具备一定的复杂度，能够固化为持久使用的SKILL；
 - 属于通用场景：发现用户制作了一张SVG格式的XXX主题-LOGO，这是一个具体任务；而真正关注的应该是用户在制作SVG-格式的LOGO，这是一个通用场景。
 
-**核心判断**：用户还会多次做相同的一类任务吗？如果用户下次再做同类事情，步骤是否基本一致？换个项目、换个时间，步骤是否基本一致？
+**核心判断**：这是一个通用的场景还是只是一次具体的任务？用户还会多次面对这个通用场景吗？如果用户下次再做同类事情，步骤是否基本一致？换个项目、换个时间，步骤是否基本一致？
 
 ### 判断是否已有 Skill 覆盖
 
@@ -96,18 +84,20 @@ npx tsx src/scripts/memory-ops.ts sop:create --title "<标题>" --source <sessio
 npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|validated|promoted> --source <sessionId> [--content-file /tmp/sop_draft.md]
 ```
 
-## 识别并记录 Agent 行为纠正
+**禁止创建额外文件**：SOP 内容通过上述命令写入 `sop-candidates/`，不要创建 `sop-and-corrections.md` 或其他任何临时/汇总文件。`/tmp/sop_draft.md` 仅用于传参，用完即弃。
 
-**目标**：从会话摘要中提取有长期通用价值的 Agent 行为纠正，写入纠正记录。
+## 识别并记录 Agent 纠正与用户偏好
+
+**目标**：从会话摘要中提取有长期通用价值的 Agent 行为纠正和用户偏好，写入纠正记录。
 
 若已读取会话摘要，可以直接复用（已经在上下文中时无需重新读文件）。
 
 ### 识别准则
 
-对每个会话，观察其是否包含以下三类信号：
+对每个会话，观察其是否包含以下信号：
 
 **① 明确陈述**
-用户说出"以后应该…"、"不要再…"、"下次用…"等带通用性指示的句子，且指向的是 Agent 的**行为模式**（不是当前任务的具体产物）。
+用户说出"以后应该…"、"不要再…"、"下次用…"等带通用性指示的句子，且指向的是 Agent 的**行为模式**或**交付风格**（不是当前任务的具体产物）。
 
 **② 错误纠偏模式**
 Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出 → 用户给出正确方式，且正确方式具有跨任务通用性。
@@ -115,16 +105,27 @@ Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出
 **③ 负向行为信号**
 用户撤销、删除或要求恢复 Agent 的某个行动，且该行动在未来有可能再次出现（具有通用性）。
 
+**④ 用户偏好信号**
+用户表达了对交付结果的明确风格倾向（如"简洁一点"、"不要加注释"、"用表格对比"），且该倾向在多个会话中稳定出现或被用户主动强调（单次出现的风格要求不记录）。
+
 ### 过滤器（列出的类型应避免记录）
 
 - 仅针对当前任务具体产物的修改（"把颜色改成红色"）
-- 语气、风格类调整；属于不可控客观因素造成的问题（例如遇到软件BUG）
 - 只在特定上下文成立、无法泛化到其他会话的操作
+- 属于不可控客观因素造成的问题（例如遇到软件 Bug）
+- 单次出现的风格要求（偏好需要多次验证才记录）
 
-### 纠正类型判断
+### 类型判断
 
-- **skill-update**：错误发生在某个 Skill 指导的工作期间，且错误根源与 Skill 内容直接相关（如路径错误、命令错误、步骤描述不清）
-- **agent-behavior**：与特定 Skill 无关的通用 Agent 行为模式（会话中的工具选择、输出习惯、调用的文件操作行为等）（应记录属于可被提示词调控的范畴内的问题，例如遇到软件本身设计不符合预期，那不属于可控问题）
+三种类型，发生层不同：
+
+- **skill-update**：错误根源在某个 Skill 内容本身（路径错误、命令错误、步骤描述不清）。Skill 修正后问题可消除。
+- **agent-behavior**：Agent 的通用行为模式出了问题（工具选择、输出习惯、文件操作方式等），与具体 Skill 无关，属于可被系统提示词调控的范畴。
+- **user-preference**：Agent **没有做错**，但用户有稳定的交付风格偏好。区别于 `agent-behavior` 的核心在于：前者是 Agent 行为有问题需要纠偏，后者是用户的个人偏好需要主动迎合。
+
+> **`agent-behavior` vs `user-preference` 举例**
+> - `agent-behavior`："用 AskUserQuestion 工具提问，不要在回复文字中直接列出问题" → Agent 行为模式需要改正
+> - `user-preference`："代码修改后不需要解释每一行做了什么，直接给结果" → Agent 没错，但用户倾向于简洁交付
 
 ### target 取值规则
 
@@ -140,28 +141,38 @@ Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出
 
 ```bash
 cd /Users/jay/Documents/GitHub/Proma_Proactive
+# agent-behavior
 npx tsx src/scripts/memory-ops.ts correction:add \
   --type "agent-behavior" \
   --target "global" \
   --summary "<一句话标签>" \
   --detail "<简洁描述，避免过度命令式语气>" \
   --source <sessionId>
-```
 
-```bash
+# skill-update
 npx tsx src/scripts/memory-ops.ts correction:add \
   --type "skill-update" \
   --target "skill:memory-daily" \
   --summary "<问题标签>" \
   --detail "<错误事实 + 具体更新建议>" \
   --source <sessionId>
+
+# user-preference
+npx tsx src/scripts/memory-ops.ts correction:add \
+  --type "user-preference" \
+  --target "global" \
+  --summary "<偏好标签>" \
+  --detail "<描述用户稳定偏好的具体表现>" \
+  --source <sessionId>
 ```
 
 ### detail 写作要求
 
-- **agent-behavior**：描述性语气，简洁（一两句话），不要出现batch/会话号等具体元信息，应是一种通用表述，例："向用户反问澄清时，使用 AskUserQuestion 工具呈现选项，避免在回复文字中直接列出问题"
-- **skill-update**：说明错误事实 + 应该怎么改。例："gather-today SKILL：其中 Step 1 的 --output 参数应补全 .json 扩展名，否则Agent常常会读取失败，额外造成Agent自行纠错和探索的成本"
+- **agent-behavior**：描述性语气，简洁（一两句话），通用表述，不出现具体会话/批次元信息。例："向用户反问澄清时，使用 AskUserQuestion 工具呈现选项，避免在回复文字中直接列出问题"
+- **skill-update**：说明错误事实 + 应该怎么改。例："gather-today Step 1 的 --output 参数应补全 .json 扩展名，否则后续读取失败"
+- **user-preference**：描述用户偏好的具体表现和适用场景，不要写成"用户要求Agent做X"的命令句，而是"用户倾向于…"的观察句。例："代码交付后用户倾向于不需要逐行解释，直接给出结果即可；多次在收到详细注释后要求删除"
 - **注意**：不写"必须"、"严禁"等过强命令式措辞；不超过三句话
+- **禁止创建额外文件**：所有纠正数据通过 `correction:add` 写入 `corrections/active.json`，不要创建任何临时/汇总文件
 
 ## 标记完成
 

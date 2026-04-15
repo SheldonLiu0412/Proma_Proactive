@@ -9,7 +9,7 @@
     "load-memory",
     "analyze-sessions",
     "extract-corrections",
-    "update-profile-and-prefs",
+    "update-profile",
     "update-sop",
     "write-memory-log",
     "write-diary",

@@ -7,7 +7,7 @@
   "numbered": false,
   "components": [
     "guide/head",
-    "update-profile-and-prefs",
+    "update-profile",
     "update-sop",
     "extract-corrections",
     "guide/state-complete",

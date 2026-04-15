@@ -1,12 +1,13 @@
-## 更新用户画像和偏好
+## 更新用户画像
 
-**目标**：将洞察结果写入记忆存储。
+**目标**：将洞察结果写入用户画像。。
 
 ### 更新用户画像
 
 直接用 Read + Edit 工具操作 `~/.proma/memory/profile.md`，局部修改即可。
 
 **画像写作规范**：
+
 - 视角：以 Proma（"我"）的口吻，第三人称（"TA"）书写（得知用户的会话昵称后用昵称，尽可能不使用用户真名）
 - 结构：用编号标题（`1` `1.1` `1.1.1`）做内容分级，**基本信息和行为模式放最上面**
 - 风格：像人物期刊——温暖、有情感色彩、鲜活。
@@ -23,33 +24,8 @@
   - 作为长期记录应该具有极强的通用性，而不是今天看到什么写什么，你是在提炼长期关注事项；例如发现用户最近一天连续调研了XXX，但这属于特定任务，作为你无须长期关注，中间的研究过程和结果就更是没有必要记录。
   - ✅正面例子：
     - **用户的Python环境**：包括Python 3.13（Homebrew），3.12（Anaconda），常用的是前者，后者专用于机器学习任务；
-    - **设计方案时和用户多做对齐**：用户倾向于选择简单实用的方案而非过度设计的方案；当发现自己的设计过度复杂时，应该认真考虑用户提出的更简洁替代方案
   - ❌负面例子：
     - **消息模型字段优先级：** 新消息用 `_channelModelId`（来自渠道配置），历史消息用 `message.model`（SDK 原始 ID），都没有时 fallback 到 `sessionModelId`。  （你看看这个负面例子——首先完全不通用且不长期；其次没有价值，对与用户日常交互没有任何指导，过于具体像流水账；最后这就是用户某次修一个具体bug的一个中间决策，属于完全不值得被记住的小事。）
 - **不堆叠增加**：更新前必须先判断新信息是否已被现有内容覆盖或可合并。**默认不加**——只有当明显缺失且长期有价值时才写入
-- **不留元信息**：画像正文中不出现"由 Dream 生成"、"最后更新于"等系统信息
+- **不留元信息**：画像正文中不出现"由 XXX 生成"、"最后更新于"等系统信息
 
-### 更新偏好
-
-使用 `memory-ops.ts` 执行偏好操作：
-
-```bash
-# 新增偏好（四个内容字段全部必填）
-npx tsx src/scripts/memory-ops.ts pref:add --category <coding|design|general> --subcategory <git|workflow|ui|code-change|interaction> --summary "<一句话核心观察>" --detail "<具体行为证据>" --source <sessionId>
-
-# 修改偏好
-npx tsx src/scripts/memory-ops.ts pref:edit --id <id> --summary "<s>" --detail "<d>" --reason "<r>" --source <sessionId>
-
-# 删除偏好
-npx tsx src/scripts/memory-ops.ts pref:delete --id <id> --reason "<r>"
-
-# 标记加强（偏好被再次验证）
-npx tsx src/scripts/memory-ops.ts pref:touch --id <id> --source <sessionId>
-```
-
-**偏好质量标准**：
-- **宁缺毋滥**：需多次出现或用户明确表达；单次行为不记录
-- **通用化**：偏好描述应跨场景可复用，不要绑定具体项目/任务
-- **场景准确**：category/subcategory 要真实反映使用场景
-- **字段完整**：pref:add 的四个内容字段全部必填，任何字段为空都不应提交
-- **禁止创建额外文件**：所有偏好数据通过上述命令写入 `preferences/active.json`，不要创建 `preferences.md` 或其他任何临时/汇总文件

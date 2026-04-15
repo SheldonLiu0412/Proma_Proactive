@@ -11,12 +11,6 @@
  * 命令：
  *   profile:show                          显示当前画像（Markdown）
  *
- *   pref:list                             列出所有偏好
- *   pref:add --category <c> --subcategory <sc> --summary <s> --detail <d> --source <sessionId>
- *   pref:edit --id <id> --summary <s> --detail <d> --reason <r> --source <sessionId> [--category <c>] [--subcategory <sc>]
- *   pref:delete --id <id> --reason <r>
- *   pref:touch --id <id> --source <sessionId>
- *
  *   sop:list                              列出所有 SOP 候选
  *   sop:create --title <t> --source <sessionId> (--content <c> | --content-file <path>)
  *   sop:update --id <id> [--title <t>] [--status <s>] [--content <c>] [--source <sessionId>]
@@ -24,7 +18,7 @@
  *   state:show                            显示运行状态
  *   state:complete --sessions <json-array>  标记会话处理完成
  *
- *   correction:add --type <agent-behavior|skill-update> --target <t> --summary <s> --detail <d> --source <sessionId>
+ *   correction:add --type <agent-behavior|skill-update|user-preference> --target <t> --summary <s> --detail <d> --source <sessionId>
  */
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs";
@@ -85,151 +79,6 @@ function profileShow() {
     return;
   }
   console.log(readFileSync(PATHS.profile, "utf-8"));
-}
-
-// ---------- Preferences 操作 ----------
-
-interface Preference {
-  id: string;
-  category: string;
-  subcategory: string;
-  summary: string;
-  detail: string;
-  firstSeen: string;
-  firstSource: string;
-  lastSeen: string;
-  lastSource: string;
-  seenCount: number;
-}
-
-function prefList() {
-  const prefs = loadJson<Preference[]>(PATHS.preferencesActive, []);
-  if (prefs.length === 0) {
-    console.log("No active preferences");
-    return;
-  }
-  for (const p of prefs) {
-    console.log(`[${p.id}] (${p.category}) ${p.summary} | seen: ${p.seenCount}x, last: ${p.lastSeen}`);
-  }
-}
-
-function prefAdd(opts: Record<string, string>) {
-  const { category, subcategory, summary, detail, source } = opts;
-  if (!category || !subcategory || !summary || !detail || !source) {
-    console.error("Required: --category, --subcategory, --summary, --detail, --source");
-    process.exit(1);
-  }
-
-  const prefs = loadJson<Preference[]>(PATHS.preferencesActive, []);
-  const id = genId("pref", prefs);
-  const d = today();
-
-  const pref: Preference = {
-    id,
-    category,
-    subcategory,
-    summary,
-    detail,
-    firstSeen: d,
-    firstSource: source,
-    lastSeen: d,
-    lastSource: source,
-    seenCount: 1,
-  };
-
-  prefs.push(pref);
-  saveJson(PATHS.preferencesActive, prefs);
-  console.log(`Added preference ${id}: ${summary}`);
-}
-
-function prefEdit(opts: Record<string, string>) {
-  const { id, summary, detail, reason, source, category, subcategory } = opts;
-  if (!id) {
-    console.error("Required: --id");
-    process.exit(1);
-  }
-
-  const prefs = loadJson<Preference[]>(PATHS.preferencesActive, []);
-  const idx = prefs.findIndex((p) => p.id === id);
-  if (idx === -1) {
-    console.error(`Preference ${id} not found`);
-    process.exit(1);
-  }
-
-  // 归档旧版本
-  const oldSnapshot = { ...prefs[idx] };
-  appendJsonl(PATHS.preferencesArchive, {
-    action: "edit",
-    prefId: id,
-    oldSnapshot,
-    reason: reason || "",
-    date: today(),
-    source: source || "",
-  });
-
-  // 更新
-  if (summary) prefs[idx].summary = summary;
-  if (detail) prefs[idx].detail = detail;
-  if (category) prefs[idx].category = category;
-  if (subcategory) prefs[idx].subcategory = subcategory;
-  prefs[idx].lastSeen = today();
-  if (source) prefs[idx].lastSource = source;
-  prefs[idx].seenCount++;
-
-  saveJson(PATHS.preferencesActive, prefs);
-  console.log(`Edited preference ${id} (old version archived)`);
-}
-
-function prefDelete(opts: Record<string, string>) {
-  const { id, reason } = opts;
-  if (!id) {
-    console.error("Required: --id");
-    process.exit(1);
-  }
-
-  const prefs = loadJson<Preference[]>(PATHS.preferencesActive, []);
-  const idx = prefs.findIndex((p) => p.id === id);
-  if (idx === -1) {
-    console.error(`Preference ${id} not found`);
-    process.exit(1);
-  }
-
-  // 归档
-  const oldSnapshot = { ...prefs[idx] };
-  appendJsonl(PATHS.preferencesArchive, {
-    action: "delete",
-    prefId: id,
-    oldSnapshot,
-    reason: reason || "",
-    date: today(),
-  });
-
-  // 删除
-  prefs.splice(idx, 1);
-  saveJson(PATHS.preferencesActive, prefs);
-  console.log(`Deleted preference ${id} (archived)`);
-}
-
-function prefTouch(opts: Record<string, string>) {
-  const { id, source } = opts;
-  if (!id || !source) {
-    console.error("Required: --id, --source");
-    process.exit(1);
-  }
-
-  const prefs = loadJson<Preference[]>(PATHS.preferencesActive, []);
-  const pref = prefs.find((p) => p.id === id);
-  if (!pref) {
-    console.error(`Preference ${id} not found`);
-    process.exit(1);
-  }
-
-  pref.lastSeen = today();
-  if (source) pref.lastSource = source;
-  pref.seenCount++;
-
-  saveJson(PATHS.preferencesActive, prefs);
-  console.log(`Touched preference ${id}: seenCount=${pref.seenCount}`);
 }
 
 // ---------- SOP 操作 ----------
@@ -340,7 +189,7 @@ function sopUpdate(opts: Record<string, string>) {
 
 interface Correction {
   id: string;
-  type: "agent-behavior" | "skill-update";
+  type: "agent-behavior" | "skill-update" | "user-preference";
   target: string;
   summary: string;
   detail: string;
@@ -355,8 +204,8 @@ function correctionAdd(opts: Record<string, string>) {
     console.error("Required: --type, --target, --summary, --detail, --source");
     process.exit(1);
   }
-  if (type !== "agent-behavior" && type !== "skill-update") {
-    console.error('--type must be "agent-behavior" or "skill-update"');
+  if (type !== "agent-behavior" && type !== "skill-update" && type !== "user-preference") {
+    console.error('--type must be "agent-behavior", "skill-update", or "user-preference"');
     process.exit(1);
   }
 
@@ -474,17 +323,6 @@ function main() {
     case "profile:show":
       return profileShow();
 
-    case "pref:list":
-      return prefList();
-    case "pref:add":
-      return prefAdd(opts);
-    case "pref:edit":
-      return prefEdit(opts);
-    case "pref:delete":
-      return prefDelete(opts);
-    case "pref:touch":
-      return prefTouch(opts);
-
     case "sop:list":
       return sopList();
     case "sop:create":
@@ -502,7 +340,7 @@ function main() {
 
     default:
       console.error(`Unknown command: ${command}`);
-      console.error("Available: profile:show, pref:list/add/edit/delete/touch, sop:list/create/update, state:show/complete, correction:add");
+      console.error("Available: profile:show, sop:list/create/update, state:show/complete, correction:add");
       process.exit(1);
   }
 }

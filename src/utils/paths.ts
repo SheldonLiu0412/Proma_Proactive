@@ -16,8 +16,6 @@ export const PATHS = {
   // Memory 存储目录
   memory: join(PROMA_DIR, "memory"),
   profile: join(PROMA_DIR, "memory", "profile.md"),
-  preferencesActive: join(PROMA_DIR, "memory", "preferences", "active.json"),
-  preferencesArchive: join(PROMA_DIR, "memory", "preferences", "archive.jsonl"),
   sopCandidates: join(PROMA_DIR, "memory", "sop-candidates"),
   sopIndex: join(PROMA_DIR, "memory", "sop-candidates", "index.json"),
   journal: join(PROMA_DIR, "memory", "memory_log"),
