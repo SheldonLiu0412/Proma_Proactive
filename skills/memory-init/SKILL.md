@@ -89,7 +89,7 @@ npx tsx src/scripts/plan-batches.ts \
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 1 批（共 M 批）。
 
-首先用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
+首先用 Read 工具完整读取 `/Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 步骤
 
@@ -110,7 +110,7 @@ npx tsx src/scripts/plan-batches.ts \
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 N 批（共 M 批）。
 
-首先用 Read 工具完整读取 `~/.proma/memory/memory-agent-guide.md`，严格遵守其中的全部规范。
+首先用 Read 工具完整读取 `/Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 步骤
 
@@ -154,6 +154,12 @@ npx tsx src/scripts/plan-batches.ts \
 ## 验证与收尾
 
 所有批次任务完成后：
+
+### 部署记忆目录索引
+
+```bash
+cp /Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-readme.md ~/.proma/memory/README.md
+```
 
 ### 自审查
 

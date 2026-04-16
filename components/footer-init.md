@@ -2,6 +2,12 @@
 
 所有批次任务完成后：
 
+### 部署记忆目录索引
+
+```bash
+cp /Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-readme.md ~/.proma/memory/README.md
+```
+
 ### 自审查
 
 创建 SubAgent，提供以下 prompt：
