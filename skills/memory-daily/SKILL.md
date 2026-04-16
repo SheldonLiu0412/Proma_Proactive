@@ -214,7 +214,17 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 
 **目标**：将洞察结果写入用户画像。。
 
-### 更新用户画像
+### 初次创建画像
+
+如果 `~/.proma/memory/profile.md` 不存在或为空，先读取初始化模版：
+
+```
+~/.proma/memory/profile-template.md
+```
+
+以模版结构为框架写入实质内容，删除所有 `> 提示` 行，只保留真实观察到的内容。章节可增减，但"Agent 需知"必须保留且在最后。
+
+### 更新已有画像
 
 直接用 Read + Edit 工具操作 `~/.proma/memory/profile.md`，局部修改即可。
 
@@ -310,7 +320,7 @@ npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|valid
 
 ### 写作要求
 
-- **视角**：以"我"（Proma）的口吻，提及用户就使用其系统昵称，像一个每天陪伴用户工作的伙伴在写日记
+- **视角**：以"我"（Proma）的口吻，提及用户就使用其昵称（从 `~/.proma/memory/profile.md` 开头获取），像一个每天陪伴用户工作的伙伴在写日记
 - **篇幅**：不超过 600 字，详略得当；如果今天用户使用较少（比如只有 1-2 个简短会话），写 100-200 字即可，不要为凑字数而注水
 - **语气**：自然、真诚、有人感。不要写成汇报或总结，要像是在回忆今天和朋友一起度过的时光
 
