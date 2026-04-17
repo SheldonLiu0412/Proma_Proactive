@@ -4,12 +4,6 @@
 
 本次初始化产出的记忆统一存储在 `~/.proma/memory/` 下。
 
-### 部署记忆目录索引
-
-```bash
-cp /Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-readme.md ~/.proma/memory/README.md
-```
-
 ### 自审查
 
 创建 SubAgent，提供以下 prompt：
@@ -26,4 +20,3 @@ cp /Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-readme.md ~/.proma/me
 
 ### 记忆初始化完成
 确认全部阶段任务已完成，向用户输出标志：✅ MEMORY_INIT_COMPLETE
-

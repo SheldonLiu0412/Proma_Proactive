@@ -15,11 +15,15 @@ export const PATHS = {
 
   // Memory 存储目录
   memory: join(PROMA_DIR, "memory"),
+  memoryReadme: join(PROMA_DIR, "memory", "README.md"),
   profile: join(PROMA_DIR, "memory", "profile.md"),
+  profileTemplate: join(PROMA_DIR, "memory", "profile-template.md"),
   sopCandidates: join(PROMA_DIR, "memory", "sop-candidates"),
   sopIndex: join(PROMA_DIR, "memory", "sop-candidates", "index.json"),
   journal: join(PROMA_DIR, "memory", "memory_log"),
   diary: join(PROMA_DIR, "memory", "diary"),
+  dreams: join(PROMA_DIR, "memory", "dreams"),
+  dreamResidues: join(PROMA_DIR, "memory", "dreams", "residues.json"),
   state: join(PROMA_DIR, "memory", "state.json"),
   correctionsActive: join(PROMA_DIR, "memory", "corrections", "active.json"),
   correctionsArchive: join(PROMA_DIR, "memory", "corrections", "archive.jsonl"),

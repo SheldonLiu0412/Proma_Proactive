@@ -5,6 +5,7 @@
   "numbered": true,
   "components": [
     "head",
+    "bootstrap-memory",
     "gather-all",
     "load-memory",
     "batch-analysis",

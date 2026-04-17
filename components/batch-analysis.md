@@ -24,7 +24,7 @@
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[0].sessionIds`，获取本批会话 ID 列表
 2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
 3. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范详见工作指南）
-4. 用 Write 工具创建 `~/.proma/memory/profile.md`
+4. 这是初始化首建批：读取 `~/.proma/memory/profile-template.md`，按模板结构创建 `~/.proma/memory/profile.md`
 5. SOP、corrections、偏好等结构化记忆**必须通过脚本写入**（`sop:create`、`correction:add`），严禁直接 Write/Edit 这些文件
 6. 标记完成（见工作指南）
 
@@ -45,7 +45,7 @@
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[N-1].sessionIds`
 2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
 3. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-4. 对比已有记忆，执行迭代更新（规范见工作指南）
+4. 这是增量更新批：读取现有 `~/.proma/memory/profile.md`，在原结构上执行局部更新（规范见工作指南）
 5. 标记完成（见工作指南）
 
 以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），并输出：✅ BATCH_N_COMPLETE

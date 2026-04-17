@@ -15,7 +15,7 @@
 | `memory_log/` | 每日记忆变更日志，文件名格式 `YYYY-MM-DD.md` |
 | `diary/` | Proma 每日散文日记，文件名格式 `YYYY-MM-DD.md` |
 | `state.json` | 运行状态文件，记录已处理的会话 ID，由脚本维护 |
-| `profile-template.md` | 用户画像初始化模版，供首次创建 profile.md 时参考 |
+| `profile-template.md` | 用户画像初始化模版，由仓库 `docs/profile-template.md` 同步到运行时后供首次创建 profile.md 时参考 |
 
 ## 工作指南
 

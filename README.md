@@ -55,10 +55,13 @@ components/              # 可复用 Skill 组件（markdown 片段）
 ├── load-memory.md       # 加载当前记忆
 ├── analyze-sessions.md  # 分析会话
 ├── extract-corrections.md  # 提取行为纠偏
-├── update-profile.md    # 更新用户画像
 ├── update-sop.md        # 更新 SOP 候选
 ├── write-memory-log.md  # 写入变更日志
 ├── write-diary.md       # 写入散文日记
+├── bootstrap-memory.md  # 初始化/重建记忆目录
+├── profile-create.md    # 首次创建画像
+├── profile-update.md    # 增量更新画像
+├── profile-rules.md     # 画像统一写作规范
 ├── dream.md             # 生成梦境（保留原名）
 ├── batch-analysis.md    # 批量分析（init 用）
 ├── footer-daily.md      # Daily 结束标志
@@ -100,6 +103,7 @@ src/
 │   ├── extract-session-digest.ts # 提取会话摘要
 │   ├── plan-batches.ts           # 计算 init 分批方案
 │   ├── list-skills.ts            # 列出当前全部 Skill
+│   ├── memory-bootstrap.ts       # 初始化/重建记忆目录
 │   └── memory-ops.ts             # 记忆存储 CRUD 操作
 ├── utils/
 │   ├── paths.ts                  # 路径常量
