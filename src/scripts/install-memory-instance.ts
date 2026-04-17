@@ -108,6 +108,23 @@ function main() {
     return;
   }
 
+  if (flags.has("check-config")) {
+    const { local } = getConfigPaths();
+    if (existsSync(local)) {
+      try {
+        const config = loadMemoryInstanceConfig({ allowMissing: false });
+        console.log(`✅ 已配置：${config.memoryWorkspace.name} (${config.memoryWorkspace.slug})`);
+        console.log(`   Config: ${local}`);
+      } catch {
+        console.log("⚠️  配置文件存在但格式不完整，请删除后重新配置：");
+        console.log(`   rm ${local}`);
+      }
+    } else {
+      console.log("❌ 未配置，需要进行初始安装");
+    }
+    return;
+  }
+
   const workspaceRef = opts.workspace;
   if (!workspaceRef) {
     console.error("Usage: install-memory-instance.ts --workspace <id|slug|name> [--proma-repo <path>] [--skip-sync]");
