@@ -14,6 +14,10 @@ description: "执行每日记忆整合流程：从今日对话中提取长期记
 
 整个过程中，你只对 `~/.proma/memory/` 目录有写权限。`~/.proma/` 下的其他文件（agent-sessions.json、conversations.json、agent-sessions/、conversations/ 等）一律只读，严禁修改或删除。
 
+**禁止预探索原始上下文**：
+- 任务开始后，不要自行检查历史会话、当前工作区、cwd、项目文件或 `~/.proma/` 下的任何原始会话数据
+- 相关流程和收集脚本已基于SKILL给出指导
+
 **结构化记忆文件必须通过脚本写入**，严禁直接 Write/Edit：
 - corrections → `correction:add`
 - SOP → `sop:create` / `sop:update`
@@ -33,6 +37,8 @@ description: "执行每日记忆整合流程：从今日对话中提取长期记
 ## 阶段 1：收集今日活跃会话
 
 **目标**：找到今天需要处理的会话，生成可读摘要。
+
+任务开始后的第一步必须直接执行本组件中的收集脚本；在脚本产物生成之前，禁止额外检查工作区、cwd 或 `~/.proma/` 下的原始会话数据。
 
 ### Step 1：收集今日活跃会话
 

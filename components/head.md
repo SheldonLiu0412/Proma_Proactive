@@ -8,6 +8,10 @@
 
 整个过程中，你只对 `~/.proma/memory/` 目录有写权限。`~/.proma/` 下的其他文件（agent-sessions.json、conversations.json、agent-sessions/、conversations/ 等）一律只读，严禁修改或删除。
 
+**禁止预探索原始上下文**：
+- 任务开始后，不要自行检查历史会话、当前工作区、cwd、项目文件或 `~/.proma/` 下的任何原始会话数据
+- 相关流程和收集脚本已基于SKILL给出指导
+
 **结构化记忆文件必须通过脚本写入**，严禁直接 Write/Edit：
 - corrections → `correction:add`
 - SOP → `sop:create` / `sop:update`
@@ -23,4 +27,3 @@
 5. **错误容忍**：如果某个工具脚本或文件操作失败，记录在日志中，不要中断整个流程
 6. **SubAgent 失败处理**：SubAgent 执行失败时（无论是 API 波动还是其他原因），只允许重试，**严禁**在主进程中替代执行其工作。重试 5 次仍失败后，终止当前任务并在最后输出错误标识符：`❌ MEMORY_SUBAGENT_FAILED`，不再继续后续阶段
 7.**基于 Task 工作**：在工作一开始建立好完整Task协助管理流程，随着阶段进行动态更新Task
-
