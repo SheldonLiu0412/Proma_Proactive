@@ -1,0 +1,8 @@
+{
+  "promaRepoRoot": "/absolute/path/to/Proma",
+  "memoryWorkspace": {
+    "id": "workspace-id",
+    "slug": "workspace-slug",
+    "name": "Memory工作区"
+  }
+}

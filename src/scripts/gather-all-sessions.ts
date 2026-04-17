@@ -3,7 +3,7 @@
  * gather-all-sessions.ts
  *
  * 收集所有历史会话（Agent + Chat），用于 Memory 初始化。
- * 过滤掉 Dream 工作区自身的会话和空会话。
+ * 过滤掉 Memory 专用工作区自身的会话和空会话。
  * Agent 会话额外过滤少于 minTurns 轮对话的（默认 3）。
  *
  * 用法：
@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
 import { PATHS } from "../utils/paths.js";
+import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { formatTimestamp } from "../utils/time.js";
 
 // ---------- 类型定义 ----------
@@ -130,6 +131,8 @@ function loadJson<T>(filePath: string, fallback: T): T {
 // ---------- 主逻辑 ----------
 
 function gatherAllSessions(minTurns: number): GatherAllResult {
+  const config = loadMemoryInstanceConfig();
+  const excludedWorkspaceId = config.memoryWorkspace.id;
   const agentData = loadJson<{ sessions: AgentSessionMeta[] }>(
     PATHS.agentSessions,
     { sessions: [] }
@@ -148,14 +151,12 @@ function gatherAllSessions(minTurns: number): GatherAllResult {
     wsMap.set(ws.id, ws.name);
   }
 
-  const DREAM_WORKSPACE_ID = "c66bb370-20f4-4ed6-8d15-df6590476038";
-
   const sessions: AllSession[] = [];
   let filtered = 0;
 
   // Agent 会话
   for (const s of agentData.sessions) {
-    if (s.workspaceId === DREAM_WORKSPACE_ID) {
+    if (s.workspaceId === excludedWorkspaceId) {
       filtered++;
       continue;
     }

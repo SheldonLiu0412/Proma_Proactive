@@ -9,7 +9,7 @@
 无需多余操作，直接使用以下命令完成会话收集和摘要提取：
 
 ```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
+cd {{PROJECT_ROOT}}
 npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tmp/memory-init-sessions.json --with-digests /tmp/memory-init-digests
 ```
 
@@ -23,7 +23,7 @@ npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tm
 继续使用以下命令完成任务批次拆分：
 
 ```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
+cd {{PROJECT_ROOT}}
 npx tsx src/scripts/plan-batches.ts \
   --mode init \
   --input /tmp/memory-init-sessions-part1.json \

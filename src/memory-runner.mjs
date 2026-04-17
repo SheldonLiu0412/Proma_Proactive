@@ -16,7 +16,6 @@
  *   ANTHROPIC_API_KEY — 必需
  */
 
-import { query } from "/Users/jay/Documents/GitHub/Proma/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs";
 import { randomUUID } from "crypto";
 import {
   readFileSync,
@@ -26,26 +25,29 @@ import {
   mkdirSync,
 } from "fs";
 import { join } from "path";
-import { homedir } from "os";
+import { pathToFileURL } from "url";
+import { PATHS } from "./utils/paths.mjs";
+import { loadMemoryInstanceConfig } from "./utils/instance-config.mjs";
 
 // ---------- 常量 ----------
 
-const PROMA_DIR = join(homedir(), ".proma");
-const MEMORY_WORKSPACE_SLUG = "dream";
-const MEMORY_WORKSPACE_ID = "c66bb370-20f4-4ed6-8d15-df6590476038";
-const MEMORY_WORKSPACE_DIR = join(PROMA_DIR, "agent-workspaces", MEMORY_WORKSPACE_SLUG);
+const PROMA_DIR = PATHS.proma;
+const INSTANCE_CONFIG = loadMemoryInstanceConfig();
+const MEMORY_WORKSPACE_SLUG = INSTANCE_CONFIG.memoryWorkspace.slug;
+const MEMORY_WORKSPACE_ID = INSTANCE_CONFIG.memoryWorkspace.id;
+const MEMORY_WORKSPACE_NAME = INSTANCE_CONFIG.memoryWorkspace.name;
+const MEMORY_WORKSPACE_DIR = INSTANCE_CONFIG.memoryWorkspaceDir;
 const SDK_CONFIG_DIR = join(PROMA_DIR, "sdk-config");
-const PROACTIVE_DIR = "/Users/jay/Documents/GitHub/Proma_Proactive";
-const SDK_CLI_PATH =
-  "/Users/jay/Documents/GitHub/Proma/node_modules/@anthropic-ai/claude-agent-sdk/cli.js";
+const PROACTIVE_DIR = INSTANCE_CONFIG.projectRoot;
+const SDK_CLI_PATH = INSTANCE_CONFIG.sdkCliPath;
+const SDK_MODULE_PATH = INSTANCE_CONFIG.sdkModulePath;
 const MEMORY_WORKSPACE_FILES_DIR = join(MEMORY_WORKSPACE_DIR, "workspace-files");
 
-const AGENT_SESSIONS_JSON = join(PROMA_DIR, "agent-sessions.json");
-const AGENT_SESSIONS_DIR = join(PROMA_DIR, "agent-sessions");
+const AGENT_SESSIONS_JSON = PATHS.agentSessions;
+const AGENT_SESSIONS_DIR = PATHS.agentSessionLogs;
 
 // 与 Proma 正式会话对齐
 const MODEL_ID = "claude-sonnet-4-6";
-const MEMORY_WORKSPACE_NAME = "Memory记忆巩固";
 
 // Memory 完成标志
 const COMPLETION_MARKER = "✅ MEMORY_COMPLETE";
@@ -54,6 +56,7 @@ const COMPLETION_MARKER = "✅ MEMORY_COMPLETE";
 const MAX_RETRIES = parseInt(getArg("--max-retries") || "5");
 const RETRY_DELAY_MS = 5000;
 const DRY_RUN = process.argv.includes("--dry-run");
+let cachedQueryFn = null;
 
 // ---------- 工具函数 ----------
 
@@ -78,6 +81,21 @@ function log(level, msg) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getQueryFn() {
+  if (cachedQueryFn) return cachedQueryFn;
+  if (!SDK_MODULE_PATH || !existsSync(SDK_MODULE_PATH)) {
+    throw new Error(`SDK module not found: ${SDK_MODULE_PATH || "(unset)"}`);
+  }
+
+  const sdkModule = await import(pathToFileURL(SDK_MODULE_PATH).href);
+  if (typeof sdkModule.query !== "function") {
+    throw new Error(`Invalid SDK module: ${SDK_MODULE_PATH}`);
+  }
+
+  cachedQueryFn = sdkModule.query;
+  return cachedQueryFn;
 }
 
 // ---------- Proma 元数据操作 ----------
@@ -185,10 +203,6 @@ Agent 工具支持 \`model\` 参数（可选值：\`sonnet\` / \`opus\` / \`haik
 - **researcher**（默认 haiku，复杂调研升级 sonnet）：技术调研。方案对比、依赖评估、架构分析
 - **code-reviewer**（默认 haiku，关键变更升级 sonnet）：代码审查。任务完成后调用，检查代码质量
 
-## 用户信息
-
-- 用户名: Guaniu
-
 ## 工作区
 
 - 工作区名称: ${MEMORY_WORKSPACE_NAME}
@@ -261,7 +275,7 @@ function buildMemoryPrompt(targetDate, sessionCwd) {
 关键提示：
 - 工具脚本在 ${PROACTIVE_DIR}/src/scripts/ 下，使用 npx tsx 运行
 - 运行脚本时先 cd ${PROACTIVE_DIR}
-- Memory 存储在 ~/.proma/memory/ 下
+- Memory 存储在 ${PROACTIVE_DIR}/.memory/ 下
 - 今日日期参数: --date ${targetDate}
 
 完成所有步骤后请输出完成标志：${COMPLETION_MARKER}`;
@@ -349,6 +363,7 @@ function buildSdkOptions(sessionCwd, promaSessionId, resumeSessionId) {
 
 async function runQuery(prompt, sessionCwd, resumeSessionId, promaSessionId) {
   const options = buildSdkOptions(sessionCwd, promaSessionId, resumeSessionId);
+  const query = await getQueryFn();
 
   let capturedSdkSessionId = resumeSessionId;
   let foundCompletion = false;
@@ -497,7 +512,7 @@ async function main() {
     process.exit(1);
   }
 
-  if (!existsSync(SDK_CLI_PATH)) {
+  if (!SDK_CLI_PATH || !existsSync(SDK_CLI_PATH)) {
     log("ERROR", `SDK CLI not found: ${SDK_CLI_PATH}`);
     process.exit(1);
   }

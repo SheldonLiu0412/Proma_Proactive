@@ -2,18 +2,18 @@
 
 所有批次任务完成后：
 
-本次初始化产出的记忆统一存储在 `~/.proma/memory/` 下。
+本次初始化产出的记忆统一存储在 `{{MEMORY_ROOT}}/` 下。
 
 ### 自审查
 
 创建 SubAgent，提供以下 prompt：
 
 ```
-此前已从用户全量历史会话中构建初始记忆，所有产物位于 `~/.proma/memory/` 下；
+此前已从用户全量历史会话中构建初始记忆，所有产物位于 `{{MEMORY_ROOT}}/` 下；
 
 请执行 memory-init-review 流程，对本次初始化生成的所有记忆文件进行审查和修正。
 
-审查规范参考：/Users/jay/Documents/GitHub/Proma_Proactive/skills/memory-init-review/SKILL.md
+审查规范参考：{{PROJECT_ROOT}}/skills/memory-init-review/SKILL.md
 
 任务结束以后简要文字汇报即可（不需要额外创建汇报文档），并输出：✅ MEMORY_REVIEW_COMPLETE
 ```

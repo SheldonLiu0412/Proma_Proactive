@@ -16,7 +16,7 @@
 在决定创建 SOP 之前，先运行以下命令获取当前全部 Skill 列表：
 
 ```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
+cd {{PROJECT_ROOT}}
 npx tsx src/scripts/list-skills.ts
 ```
 

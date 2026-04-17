@@ -20,6 +20,19 @@ const __dirname = dirname(__filename);
 const COMPONENTS_DIR = join(__dirname, 'components');
 const SKILLS_DIR = join(__dirname, 'skills');
 const CONFIGS_DIR = join(__dirname, 'skill-configs');
+const TEMPLATE_VARS = {
+  PROJECT_ROOT: __dirname,
+  MEMORY_ROOT: join(__dirname, '.memory'),
+};
+
+function renderTemplate(content) {
+  return content.replace(/\{\{([A-Z_]+)\}\}/g, (_, key) => {
+    if (!(key in TEMPLATE_VARS)) {
+      throw new Error(`Unknown template variable: ${key}`);
+    }
+    return TEMPLATE_VARS[key];
+  });
+}
 
 /**
  * 读取组件内容。组件名可以包含子目录，如 "guide/profile"。
@@ -27,7 +40,7 @@ const CONFIGS_DIR = join(__dirname, 'skill-configs');
 function readComponent(name) {
   const path = join(COMPONENTS_DIR, `${name}.md`);
   try {
-    return readFileSync(path, 'utf-8').trim();
+    return renderTemplate(readFileSync(path, 'utf-8').trim());
   } catch (err) {
     throw new Error(`Failed to read component: ${name} (${path})`);
   }

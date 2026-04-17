@@ -8,10 +8,7 @@ const __dirname = dirname(__filename);
 const PROJECT_ROOT = resolve(__dirname, "../..");
 
 export const PATHS = {
-  // 项目目录
   projectRoot: PROJECT_ROOT,
-
-  // Proma 数据目录
   proma: PROMA_DIR,
   agentSessions: join(PROMA_DIR, "agent-sessions.json"),
   agentSessionLogs: join(PROMA_DIR, "agent-sessions"),
@@ -19,8 +16,6 @@ export const PATHS = {
   conversationLogs: join(PROMA_DIR, "conversations"),
   workspaces: join(PROMA_DIR, "agent-workspaces.json"),
   workspacesDir: join(PROMA_DIR, "agent-workspaces"),
-
-  // Memory 存储目录
   memory: join(PROJECT_ROOT, ".memory"),
   memoryReadme: join(PROJECT_ROOT, ".memory", "README.md"),
   profile: join(PROJECT_ROOT, ".memory", "profile.md"),

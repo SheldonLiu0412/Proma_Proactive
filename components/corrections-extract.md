@@ -57,12 +57,12 @@ Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出
 
 ### 写入流程
 
-1. 用 Read 工具读取 `~/.proma/memory/corrections/active.json`
+1. 用 Read 工具读取 `{{MEMORY_ROOT}}/corrections/active.json`
 2. 对每条识别出的纠正，先检查是否已有 target + summary 高度相似的条目 → 有则跳过
 3. 新条目用 `correction:add` 写入：
 
 ```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
+cd {{PROJECT_ROOT}}
 # agent-behavior
 npx tsx src/scripts/memory-ops.ts correction:add \
   --type "agent-behavior" \

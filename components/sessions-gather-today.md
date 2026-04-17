@@ -29,7 +29,7 @@ npx tsx src/scripts/extract-session-digest.ts --id <sessionId> --type <agent|cha
 ### Step 3：计算分批方案
 
 ```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
+cd {{PROJECT_ROOT}}
 npx tsx src/scripts/plan-batches.ts \
   --mode daily \
   --input /tmp/memory-gather.json \

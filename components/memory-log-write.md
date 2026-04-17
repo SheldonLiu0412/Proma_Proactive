@@ -1,6 +1,6 @@
 ## 撰写变更日志
 
-**目标**：将当日的变更日志写入 `~/.proma/memory/memory_log/YYYY-MM-DD.md`。
+**目标**：将当日的变更日志写入 `{{MEMORY_ROOT}}/memory_log/YYYY-MM-DD.md`。
 
 这是结构化的事实记录，聚焦于"今天发生了什么变更"：
 

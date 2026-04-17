@@ -17,14 +17,14 @@
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 1 批（共 M 批）。
 
-首先用 Read 工具完整读取 `/Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-agent-guide.md`，严格遵守其中的全部规范。
+首先用 Read 工具完整读取 `{{PROJECT_ROOT}}/docs/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 步骤
 
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[0].sessionIds`，获取本批会话 ID 列表
 2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
 3. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范详见工作指南）
-4. 这是初始化首建批：读取 `~/.proma/memory/profile-template.md`，按模板结构创建 `~/.proma/memory/profile.md`
+4. 这是初始化首建批：读取 `{{MEMORY_ROOT}}/profile-template.md`，按模板结构创建 `{{MEMORY_ROOT}}/profile.md`
 5. SOP、corrections、偏好等结构化记忆**必须通过脚本写入**（`sop:create`、`correction:add`），严禁直接 Write/Edit 这些文件
 6. 标记完成（见工作指南）
 
@@ -38,14 +38,14 @@
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 N 批（共 M 批）。
 
-首先用 Read 工具完整读取 `/Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-agent-guide.md`，严格遵守其中的全部规范。
+首先用 Read 工具完整读取 `{{PROJECT_ROOT}}/docs/memory-agent-guide.md`，严格遵守其中的全部规范。
 
 ## 步骤
 
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[N-1].sessionIds`
-2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`~/.proma/memory/corrections/active.json`，并执行 `cd /Users/jay/Documents/GitHub/Proma_Proactive && npx tsx src/scripts/memory-ops.ts sop:list`
+2. 读取当前记忆状态：`{{MEMORY_ROOT}}/profile.md`、`{{MEMORY_ROOT}}/corrections/active.json`，并执行 `cd {{PROJECT_ROOT}} && npx tsx src/scripts/memory-ops.ts sop:list`
 3. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
-4. 这是增量更新批：读取现有 `~/.proma/memory/profile.md`，在原结构上执行局部更新（规范见工作指南）
+4. 这是增量更新批：读取现有 `{{MEMORY_ROOT}}/profile.md`，在原结构上执行局部更新（规范见工作指南）
 5. 标记完成（见工作指南）
 
 以上全部执行完成以后简要文字汇报即可（不需要额外创建汇报文档），并输出：✅ BATCH_N_COMPLETE
@@ -58,10 +58,10 @@
 ```
 在完成本批核心记忆更新后，还需要继续执行以下收尾工作：
 
-1. 用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/memory-log-write.md`，遵从其规范撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`
+1. 用 Read 工具读取 `{{PROJECT_ROOT}}/components/memory-log-write.md`，遵从其规范撰写变更日志到 `{{MEMORY_ROOT}}/memory_log/YYYY-MM-DD.md`
    - 这里的日志需要覆盖**整个初始化过程**，而非仅最后一批
    - 内容至少包含：处理概况（总会话数、批次数）、最终记忆状态、关键洞察
-2. 再用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/diary-write.md`，遵从其规范撰写日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`
+2. 再用 Read 工具读取 `{{PROJECT_ROOT}}/components/diary-write.md`，遵从其规范撰写日记到 `{{MEMORY_ROOT}}/diary/YYYY-MM-DD.md`
 3. 标记所有会话完成：`state:complete`
 ```
 

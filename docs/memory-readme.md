@@ -20,4 +20,4 @@
 ## 工作指南
 
 记忆系统的完整规范请参考：
-`/Users/jay/Documents/GitHub/Proma_Proactive/docs/memory-agent-guide.md`
+`{{PROJECT_ROOT}}/docs/memory-agent-guide.md`

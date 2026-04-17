@@ -2,11 +2,11 @@
 
 ## 工具脚本位置
 
-所有工具脚本在 `/Users/jay/Documents/GitHub/Proma_Proactive/src/scripts/` 下，使用 `npx tsx` 运行。
+所有工具脚本在 `{{PROJECT_ROOT}}/src/scripts/` 下，使用 `npx tsx` 运行。
 
 ## 安全约束
 
-整个过程中，你只对 `~/.proma/memory/` 目录有写权限。`~/.proma/` 下的其他文件（agent-sessions.json、conversations.json、agent-sessions/、conversations/ 等）一律只读，严禁修改或删除。
+整个过程中，你只对 `{{MEMORY_ROOT}}/` 目录有写权限。`~/.proma/` 下的其他文件（agent-sessions.json、conversations.json、agent-sessions/、conversations/ 等）一律只读，严禁修改或删除。
 
 **禁止预探索原始上下文**：
 - 任务开始后，不要自行检查历史会话、当前工作区、cwd、项目文件或 `~/.proma/` 下的任何原始会话数据

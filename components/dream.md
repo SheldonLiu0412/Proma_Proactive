@@ -38,7 +38,7 @@
 
 ### Step 2：更新残留池
 
-1. 读取 `~/.proma/memory/dreams/residues.json`（不存在则初始化为 `[]`）
+1. 读取 `{{MEMORY_ROOT}}/dreams/residues.json`（不存在则初始化为 `[]`）
 2. 所有已有残留执行衰减：`salience *= 0.85`
 3. 删除 `salience < 0.2` 的残留
 4. 追加今天提取的新残留
@@ -57,7 +57,7 @@
 
 ### Step 4：生成梦境
 
-从残留池 + 今日标的中组合素材，生成梦境，写入 `~/.proma/memory/dreams/YYYY-MM-DD.md`。
+从残留池 + 今日标的中组合素材，生成梦境，写入 `{{MEMORY_ROOT}}/dreams/YYYY-MM-DD.md`。
 
 今日标的驱动主线，从残留池取 3-5 个残留作为配角和细节，素材之间要有碰撞融合，不是简单拼接。混合至少 2 个不同日期的残留（首次运行除外）。
 

@@ -4,6 +4,7 @@
  *
  * 收集指定日期内活跃的会话（Agent 会话 + Chat 会话）。
  * 区分新建会话和增量更新的旧会话。
+ * 自动排除当前 Memory 专用工作区自身的会话。
  *
  * 用法：
  *   npx tsx src/scripts/gather-sessions.ts [--date YYYY-MM-DD] [--output path]
@@ -14,6 +15,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { PATHS } from "../utils/paths.js";
+import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { getDayRange, formatTimestamp } from "../utils/time.js";
 
 // ---------- 类型定义 ----------
@@ -137,6 +139,8 @@ function buildWorkspaceMap(
 
 function gatherSessions(dateStr?: string): GatherResult {
   const { start, end, dateStr: resolvedDate } = getDayRange(dateStr);
+  const config = loadMemoryInstanceConfig();
+  const excludedWorkspaceId = config.memoryWorkspace.id;
 
   // 加载数据
   const agentData = loadJson<{ sessions: AgentSessionMeta[] }>(
@@ -160,17 +164,14 @@ function gatherSessions(dateStr?: string): GatherResult {
 
   const wsMap = buildWorkspaceMap(wsData.workspaces);
 
-  // Dream 工作区 ID — 排除 Dream 自身的会话，避免自我分析
-  const DREAM_WORKSPACE_ID = "c66bb370-20f4-4ed6-8d15-df6590476038";
-
   const newSessions: GatheredNewSession[] = [];
   const updatedSessions: GatheredUpdatedSession[] = [];
   let skipped = 0;
 
   // 处理 Agent 会话
   for (const s of agentData.sessions) {
-    // 排除 Dream 工作区自身的会话
-    if (s.workspaceId === DREAM_WORKSPACE_ID) {
+    // 排除 Memory 专用工作区自身的会话，避免自我分析
+    if (s.workspaceId === excludedWorkspaceId) {
       skipped++;
       continue;
     }

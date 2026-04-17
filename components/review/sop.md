@@ -3,13 +3,13 @@
 先用 Read 工具读取规范文件，了解 SOP 的提炼标准和字段要求：
 
 ```
-/Users/jay/Documents/GitHub/Proma_Proactive/components/sop-update.md
+{{PROJECT_ROOT}}/components/sop-update.md
 ```
 
 再列出当前所有 SOP：
 
 ```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
+cd {{PROJECT_ROOT}}
 npx tsx src/scripts/memory-ops.ts sop:list
 ```
 

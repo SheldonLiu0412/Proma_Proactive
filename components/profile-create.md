@@ -5,7 +5,7 @@
 先读取运行时模板：
 
 ```
-~/.proma/memory/profile-template.md
+{{MEMORY_ROOT}}/profile-template.md
 ```
 
 以模板结构为框架写入实质内容，删除所有 `>` 注释提示行，只保留真实观察到的内容。章节可增减，但"Agent 需知"必须保留且在最后。

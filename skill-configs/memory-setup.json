@@ -1,0 +1,11 @@
+{
+  "name": "memory-setup",
+  "version": "1.0.0",
+  "description": "Memory 新手配置引导：识别 Proma 专用工作区，写入本地实例配置，构建并同步运行所需 skills。当用户第一次接入这个仓库，想完成初始化前的安装配置时使用。",
+  "numbered": true,
+  "components": [
+    "setup-head",
+    "setup-instance",
+    "setup-complete"
+  ]
+}
