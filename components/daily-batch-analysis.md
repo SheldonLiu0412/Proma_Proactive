@@ -33,7 +33,7 @@
 
 ---
 
-**批次 N（迭代批）的 SubAgent prompt（若是最终一批则需要额外追加指令）：**
+**批次 N（迭代批）的 SubAgent prompt：**
 
 ```
 你是 Proma Memory Agent，正在执行 Memory 每日整合的第 N 批（共 M 批）。
@@ -53,16 +53,6 @@
 
 ---
 
-**执行最后一批时，主 Agent 需要额外向 SubAgent prompt 追加指令：**
-
-```
-在完成本批核心记忆更新后，还需要继续执行以下收尾工作：
-
-1. 用 Read 工具读取 `{{PROJECT_ROOT}}/components/memory-log-write.md`，遵从其规范撰写变更日志到 `{{MEMORY_ROOT}}/memory_log/YYYY-MM-DD.md`
-2. 再用 Read 工具读取 `{{PROJECT_ROOT}}/components/diary-write.md`，遵从其规范撰写日记到 `{{MEMORY_ROOT}}/diary/YYYY-MM-DD.md`
-3. 标记所有会话完成：`state:complete`
-```
-
 ### SubAgent 执行顺序
 
 **重要：SubAgent 必须按顺序执行，不能并行。** 后续批次需要在前一批的记忆基础上迭代。
@@ -70,7 +60,6 @@
 按 `totalBatches` 循环，由主 Agent 判断当前批次：
 - 第 1 批：使用创建批模板
 - 第 2 批起：使用迭代批模板
-- 若当前批次 `N === totalBatches`，在上述模板后**额外追加**最后一批收尾指令
 - 收到 `✅ BATCH_N_COMPLETE` 后再发起下一批
 
-**当 NeedsBatching 为 true 时，memory_log、diary、state:complete 均由最后一批 SubAgent 负责完成，主 Agent 的后续阶段（memory-log-write、diary-write、daily-complete）应跳过。**
+**所有批次完成后，主 Agent 继续执行后续阶段（memory-log-write、diary-write、daily-complete）。**

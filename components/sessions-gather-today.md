@@ -20,4 +20,4 @@ npx tsx src/scripts/gather-sessions.ts \
 3. 分批概况：`NeedsBatching: true/false`、总批次数、每批会话数
 
 - **`NeedsBatching: false`**：直接读取所有摘要文件进入下一阶段（无需 SubAgent）
-- **`NeedsBatching: true`**：通过 SubAgent 分批处理，批次详情见 `/tmp/memory-daily-batches.json`（布置 SubAgent 时按需读取）
+- **`NeedsBatching: true`**：用 Read 工具读取 `{{PROJECT_ROOT}}/components/daily-batch-analysis.md`，按其中的指引通过 SubAgent 分批处理。所有批次完成后，主 Agent 继续执行后续阶段。
