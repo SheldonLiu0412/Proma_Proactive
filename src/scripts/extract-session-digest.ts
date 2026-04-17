@@ -61,8 +61,8 @@ interface DialogueTurn {
   timestamp: number;
   timeStr: string;
   userText: string;
-  assistantText: string;
-  toolCalls: string[];
+  segments: Array<{ type: "text"; text: string } | { type: "tool"; call: string } | { type: "readonly"; counts: Record<string, number> }>;
+  toolCalls: string[]; // 保留用于 categorizeFileOps
 }
 
 interface SessionDigest {
@@ -146,63 +146,79 @@ function extractUserText(msg: RawMessage): string | null {
 
 // ---------- 提取 Assistant 文本和工具调用 ----------
 
+const READ_ONLY_TOOLS = new Set(["Read", "Glob", "Grep"]);
+
 function extractAssistantContent(msg: RawMessage): {
-  text: string;
+  segments: Array<{ type: "text"; text: string } | { type: "tool"; call: string } | { type: "readonly"; counts: Record<string, number> }>;
   toolCalls: string[];
 } {
+  const segments: Array<{ type: "text"; text: string } | { type: "tool"; call: string } | { type: "readonly"; counts: Record<string, number> }> = [];
   const toolCalls: string[] = [];
-  const texts: string[] = [];
 
   // legacy format
   if (isLegacyFormat(msg)) {
     if (msg.role === "assistant" && typeof msg.content === "string") {
-      return { text: msg.content, toolCalls: [] };
+      return { segments: [{ type: "text", text: msg.content }], toolCalls: [] };
     }
-    return { text: "", toolCalls: [] };
+    return { segments: [], toolCalls: [] };
   }
 
-  if (msg.type !== "assistant") return { text: "", toolCalls: [] };
+  if (msg.type !== "assistant") return { segments: [], toolCalls: [] };
   const content = msg.message?.content;
-  if (!Array.isArray(content)) return { text: "", toolCalls: [] };
+  if (!Array.isArray(content)) return { segments: [], toolCalls: [] };
 
   for (const block of content) {
     if (block.type === "text" && block.text) {
-      texts.push(block.text);
+      segments.push({ type: "text", text: block.text as string });
     } else if (block.type === "tool_use" && block.name) {
-      const summary = formatToolCall(block.name, block.input);
-      toolCalls.push(summary);
+      const toolName = block.name as string;
+      if (READ_ONLY_TOOLS.has(toolName)) {
+        // 连续的 read-only 合并到上一个 read-only segment
+        const last = segments[segments.length - 1];
+        if (last && last.type === "readonly") {
+          if (last.counts[toolName]) last.counts[toolName]++;
+          else last.counts[toolName] = 1;
+        } else {
+          segments.push({ type: "readonly", counts: { [toolName]: 1 } });
+        }
+      } else {
+        const summary = formatToolCall(toolName, block.input);
+        segments.push({ type: "tool", call: summary });
+        toolCalls.push(summary);
+      }
     }
     // skip thinking blocks
   }
 
-  return { text: texts.join("\n"), toolCalls };
+  return { segments, toolCalls, readOnlyCounts: {} };
 }
 
 function formatToolCall(
   name: string,
   input?: Record<string, unknown>
 ): string {
+  const truncate = (s: string) => s.length > 10 ? s.slice(0, 10) + "..." : s;
   if (!input) return name;
 
   switch (name) {
     case "Read":
-      return `Read(${shortenPath(input.file_path as string)})`;
+      return `Read(${truncate(shortenPath(input.file_path as string))})`;
     case "Write":
-      return `Write(${shortenPath(input.file_path as string)})`;
+      return `Write(${truncate(shortenPath(input.file_path as string))})`;
     case "Edit":
-      return `Edit(${shortenPath(input.file_path as string)})`;
+      return `Edit(${truncate(shortenPath(input.file_path as string))})`;
     case "Glob":
-      return `Glob(${input.pattern})`;
+      return `Glob(${truncate(input.pattern as string)})`;
     case "Grep":
-      return `Grep("${input.pattern}"${input.path ? `, ${shortenPath(input.path as string)}` : ""})`;
+      return `Grep(${truncate(input.pattern as string)})`;
     case "Bash": {
       const cmd = (input.command as string) || "";
-      return `Bash(${cmd.length > 60 ? cmd.slice(0, 57) + "..." : cmd})`;
+      return `Bash(${truncate(cmd)})`;
     }
     case "Agent":
-      return `Agent(${input.subagent_type || "general"}: ${(input.description as string || "").slice(0, 40)})`;
+      return `Agent(${truncate(input.subagent_type as string || "general")})`;
     case "Skill":
-      return `Skill(${input.skill})`;
+      return `Skill(${truncate(input.skill as string)})`;
     default:
       return name;
   }
@@ -273,24 +289,24 @@ function buildTurns(
 
   let currentUserText = "";
   let currentUserTs = 0;
-  let assistantTexts: string[] = [];
+  let assistantSegments: Array<{ type: "text"; text: string } | { type: "tool"; call: string } | { type: "readonly"; counts: Record<string, number> }> = [];
   let assistantToolCalls: string[] = [];
   let turnIndex = 0;
 
   function flushTurn() {
-    if (currentUserText || assistantTexts.length > 0) {
+    if (currentUserText || assistantSegments.length > 0) {
       turnIndex++;
       turns.push({
         index: turnIndex,
         timestamp: currentUserTs,
         timeStr: currentUserTs ? formatTimestamp(currentUserTs) : "",
         userText: currentUserText.trim(),
-        assistantText: assistantTexts.join("\n\n").trim(),
+        segments: [...assistantSegments],
         toolCalls: [...assistantToolCalls],
       });
       currentUserText = "";
       currentUserTs = 0;
-      assistantTexts = [];
+      assistantSegments = [];
       assistantToolCalls = [];
     }
   }
@@ -324,8 +340,21 @@ function buildTurns(
     const isAssistant =
       msg.type === "assistant" || (isLegacyFormat(msg) && msg.role === "assistant");
     if (isAssistant) {
-      const { text, toolCalls } = extractAssistantContent(msg);
-      if (text) assistantTexts.push(text);
+      const { segments, toolCalls } = extractAssistantContent(msg);
+      for (const seg of segments) {
+        if (seg.type === "readonly") {
+          const last = assistantSegments[assistantSegments.length - 1];
+          if (last && last.type === "readonly") {
+            for (const [name, count] of Object.entries(seg.counts)) {
+              last.counts[name] = (last.counts[name] || 0) + count;
+            }
+          } else {
+            assistantSegments.push({ ...seg, counts: { ...seg.counts } });
+          }
+        } else {
+          assistantSegments.push(seg);
+        }
+      }
       assistantToolCalls.push(...toolCalls);
       continue;
     }
@@ -455,7 +484,6 @@ function renderMarkdown(digest: SessionDigest): string {
     lines.push(`### 轮次 ${turn.index}${turn.timeStr ? ` (${turn.timeStr})` : ""}`);
 
     if (turn.userText) {
-      // 截断过长的用户文本
       const userDisplay =
         turn.userText.length > 300
           ? turn.userText.slice(0, 300) + "\n...(截断)"
@@ -463,17 +491,18 @@ function renderMarkdown(digest: SessionDigest): string {
       lines.push(`**用户**: ${userDisplay}`);
     }
 
-    if (turn.assistantText) {
-      // Assistant 回复只保留前300字：Memory Agent 关注的是用户意图和工具操作，不需要完整回复
-      const assistantDisplay =
-        turn.assistantText.length > 300
-          ? turn.assistantText.slice(0, 300) + "\n...(截断)"
-          : turn.assistantText;
-      lines.push(`**Agent**: ${assistantDisplay}`);
-    }
-
-    if (turn.toolCalls.length > 0) {
-      lines.push(`**操作**: ${turn.toolCalls.join(", ")}`);
+    for (const seg of turn.segments) {
+      if (seg.type === "text") {
+        const display = seg.text.length > 500 ? seg.text.slice(0, 500) + "\n...(截断)" : seg.text;
+        lines.push(`**Agent**: ${display}`);
+      } else if (seg.type === "readonly") {
+        const summary = Object.entries(seg.counts)
+          .map(([name, count]) => count > 1 ? `${name} ×${count}` : name)
+          .join(", ");
+        lines.push(summary);
+      } else {
+        lines.push(seg.call);
+      }
     }
 
     lines.push("");
