@@ -128,7 +128,7 @@ config/
 ├── memory-instance.template.json  # 实例配置模板
 └── memory-instance.local.json     # 本机实例配置（git ignore）
 
-skills/                  # 组装输出目录
+skills/                  # 组装输出目录（构建产物，不提交 git，clone 后运行 node build.mjs 生成）
 ├── memory-setup/
 │   └── SKILL.md
 ├── memory-daily/
@@ -149,9 +149,12 @@ src/
 │   ├── plan-batches.ts           # 计算 init 分批方案
 │   ├── list-skills.ts            # 列出当前全部 Skill
 │   ├── memory-bootstrap.ts       # 初始化/重建记忆目录
-│   └── memory-ops.ts             # 记忆存储 CRUD 操作
+│   ├── memory-ops.ts             # 记忆存储 CRUD 操作
+│   └── install-memory-instance.ts # 安装/配置实例
 ├── utils/
-│   ├── paths.ts                  # 路径常量
+│   ├── paths.ts                  # 路径常量（TypeScript）
+│   ├── paths.mjs                 # 路径常量（ESM）
+│   ├── instance-config.mjs       # 实例配置读取工具
 │   └── time.ts                   # 时间工具
 └── memory-runner.mjs             # 启动脚本（实验性）
 
