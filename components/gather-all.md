@@ -4,20 +4,21 @@
 
 ### Step 1：收集全量会话并提取摘要
 
-一条命令完成会话收集和摘要提取：
+无需多余操作，直接使用以下命令完成会话收集和摘要提取：
 
 ```bash
 cd /Users/jay/Documents/GitHub/Proma_Proactive
 npx tsx src/scripts/gather-all-sessions.ts --min-turns 2 --limit 80 --output /tmp/memory-init-sessions.json --with-digests /tmp/memory-init-digests
 ```
 
-这会：
-1. 收集所有有效会话（已过滤 Memory 运行的工作区、空Chat会话&少于 2 轮的 Agent 会话）
-2. 如果超过 80 条，优先保留 Agent 类型会话，再优先保留最近的
-3. 按 createdAt 升序排列，**自动拆分为两个文件**：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读取失败）
-4. 自动为每个会话调用 extract-session-digest.ts，将摘要保存到 `/tmp/memory-init-digests/<sessionId>.md`
+执行会自动完成以下工作：
+1. 收集并优先保留最近的 Agent 有效会话，不超过 80 条（脚本中已完成相应的会话过滤）
+2. 按 createdAt 升序排列，过多时会自动拆分为两个文件：`memory-init-sessions-part1.json` 和 `memory-init-sessions-part2.json`（避免单文件过长 Read 读取失败）
+3. 最终摘要保存到 `/tmp/memory-init-digests/<sessionId>.md` 以供使用
 
 ### Step 2：计算分批方案
+
+继续使用以下命令完成任务批次拆分：
 
 ```bash
 cd /Users/jay/Documents/GitHub/Proma_Proactive
