@@ -109,9 +109,10 @@ components/              # 可复用 Skill 组件（markdown 片段）
 ├── memory-bootstrap.md       # 初始化/重建记忆目录
 ├── profile-create.md    # 首次创建画像
 ├── profile-update.md    # 增量更新画像
-├── profile-rules.md     # 画像统一写作规范
-├── dream.md             # 生成梦境（保留原名）
+├── profile-rules.md     # 用户画像规范
+├── dream.md             # 生成梦境（默认关闭，需要可在configs中自行打开）
 ├── init-batch-analysis.md    # 批量分析（init 用）
+├── daily-batch-analysis.md   # 批量分析（daily 用，NeedsBatching 模式）
 ├── daily-complete.md         # Daily 结束标志
 ├── init-complete.md          # Init 结束标志
 ├── guide/               # 指南专用组件
@@ -153,7 +154,7 @@ docs/
 
 src/
 ├── scripts/
-│   ├── gather-sessions.ts        # 收集今日活跃会话
+│   ├── gather-sessions.ts        # 收集今日活跃会话（支持 --with-digests 自动提取摘要、--plan-batches 自动分批）
 │   ├── gather-all-sessions.ts    # 收集全量历史会话（初始化用）
 │   ├── extract-session-digest.ts # 提取会话摘要
 │   ├── plan-batches.ts           # 计算 init 分批方案
@@ -162,8 +163,8 @@ src/
 │   ├── memory-ops.ts             # 记忆存储 CRUD 操作
 │   └── install-memory-instance.ts # 安装/配置实例
 ├── utils/
-│   ├── paths.ts                  # 路径常量（TypeScript）
-│   ├── paths.mjs                 # 路径常量（ESM）
+│   ├── paths.ts                  # 路径常量
+│   ├── paths.mjs                 # 路径常量
 │   ├── instance-config.mjs       # 实例配置读取工具
 │   └── time.ts                   # 时间工具
 └── memory-runner.mjs             # 启动脚本（实验性）

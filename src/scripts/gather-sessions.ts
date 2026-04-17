@@ -7,14 +7,18 @@
  * 自动排除当前 Memory 专用工作区自身的会话。
  *
  * 用法：
- *   npx tsx src/scripts/gather-sessions.ts [--date YYYY-MM-DD] [--output path]
+ *   npx tsx src/scripts/gather-sessions.ts [--date YYYY-MM-DD] [--output path] [--with-digests dir] [--plan-batches path]
  *
+ * --with-digests: 收集完成后自动为每个会话提取摘要，保存到指定目录（自动处理 new/updated 的增量参数）
+ * --plan-batches: 摘要提取完成后自动计算分批方案，输出到指定路径（需同时指定 --output 和 --with-digests）
  * 默认日期为今天，输出到 stdout（或指定文件）。
  */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { execSync } from "child_process";
 import { resolve } from "path";
 import { PATHS } from "../utils/paths.js";
+import { fileURLToPath } from "url";
 import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { getDayRange, formatTimestamp } from "../utils/time.js";
 
@@ -296,12 +300,18 @@ function main() {
   const args = process.argv.slice(2);
   let dateStr: string | undefined;
   let outputPath: string | undefined;
+  let digestsDir: string | undefined;
+  let planBatchesPath: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--date" && args[i + 1]) {
       dateStr = args[++i];
     } else if (args[i] === "--output" && args[i + 1]) {
       outputPath = args[++i];
+    } else if (args[i] === "--with-digests" && args[i + 1]) {
+      digestsDir = args[++i];
+    } else if (args[i] === "--plan-batches" && args[i + 1]) {
+      planBatchesPath = args[++i];
     }
   }
 
@@ -315,6 +325,46 @@ function main() {
     );
   } else {
     console.log(json);
+  }
+
+  if (digestsDir) {
+    mkdirSync(digestsDir, { recursive: true });
+    const scriptDir = import.meta.dirname ?? fileURLToPath(new URL(".", import.meta.url));
+    const extractScript = resolve(scriptDir, "extract-session-digest.ts");
+    const cwd = resolve(scriptDir, "..", "..");
+    let success = 0;
+    let failed = 0;
+
+    const allSessions = [...result.newSessions, ...result.updatedSessions];
+
+    for (const sess of allSessions) {
+      const outFile = resolve(digestsDir, `${sess.id}.md`);
+      if (existsSync(outFile)) { success++; continue; }
+      try {
+        const fromArg = sess.kind === "updated" ? `--from ${sess.incrementalFrom}` : "";
+        execSync(
+          `npx tsx "${extractScript}" --id ${sess.id} --type ${sess.type} ${fromArg} --output "${outFile}"`,
+          { cwd, stdio: "pipe", timeout: 30000 }
+        );
+        success++;
+      } catch (err: unknown) {
+        failed++;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`  [SKIP] ${sess.id} (${sess.title}): ${msg.split("\n")[0]}`);
+      }
+    }
+
+    console.log(`Digests: ${success} extracted, ${failed} failed → ${digestsDir}`);
+  }
+
+  if (planBatchesPath && outputPath) {
+    const scriptDir = import.meta.dirname ?? fileURLToPath(new URL(".", import.meta.url));
+    const planScript = resolve(scriptDir, "plan-batches.ts");
+    const cwd = resolve(scriptDir, "..", "..");
+    execSync(
+      `npx tsx "${planScript}" --mode daily --input "${outputPath}" --output "${planBatchesPath}"`,
+      { cwd, stdio: "inherit" }
+    );
   }
 }
 
