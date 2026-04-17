@@ -74,10 +74,9 @@ npx tsx src/scripts/plan-batches.ts \
 
 读取以下文件了解当前记忆状态：
 - `~/.proma/memory/profile.md` — 用户画像
-- `~/.proma/memory/corrections/active.json` — 当前纠正与偏好记录（含 agent-behavior、skill-update、user-preference 三类）
+- `~/.proma/memory/corrections/active.json` — 错误纠正与用户偏好记录
 - `~/.proma/memory/sop-candidates/index.json` — SOP 候选
-- `~/.proma/memory/state.json` — 运行状态
-- 最近的 memory_log 和 diary 文件（如果有）— 了解近期趋势和情绪基调
+- 最近的 memory_log 和 diary 文件（如果有）— 了解近期记忆趋势和协作记录
 
 ## 阶段 3：逐会话分析
 
@@ -317,7 +316,7 @@ npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|valid
 ### 写作要求
 
 - **视角**：以"我"（Proma）的口吻，提及用户就使用其昵称（从 `~/.proma/memory/profile.md` 开头获取），像一个每天陪伴用户工作的伙伴在写日记
-- **篇幅**：不超过 600 字，详略得当；如果今天用户使用较少（比如只有 1-2 个简短会话），写 100-200 字即可，不要为凑字数而注水
+- **篇幅**：不超过 500 字，详略得当；如果今天用户使用较少（比如只有 1-2 个简短会话），写 100-200 字即可，不要为凑字数而注水
 - **语气**：自然、真诚、有人感。不要写成汇报或总结，要像是在回忆今天和朋友一起度过的时光
 
 ### 内容方向（不需要全部覆盖，选有感触的写）

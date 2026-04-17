@@ -33,7 +33,7 @@
 
 ---
 
-**批次 N（迭代批）的 SubAgent prompt：**
+**批次 N（迭代批）的 SubAgent prompt （若是最终一批则需要额外追加指令）：**
 
 ```
 你是 Proma Memory Agent，正在执行 Memory 初始化的第 N 批（共 M 批）。
@@ -58,15 +58,16 @@
 ```
 在完成本批核心记忆更新后，还需要继续执行以下收尾工作：
 
-1. 撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`
-   - 内容：本批次处理概况、记忆变更记录
-2. 撰写日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`（写法见工作指南）
+1. 用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/write-memory-log.md`，遵从其规范撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`
+   - 这里的日志需要覆盖**整个初始化过程**，而非仅最后一批
+   - 内容至少包含：处理概况（总会话数、批次数）、最终记忆状态、关键洞察
+2. 再用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/write-diary.md`，遵从其规范撰写日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`
 3. 标记所有会话完成：`state:complete`
 ```
 
-### 执行顺序
+### Subagent 执行顺序
 
-**重要：SubAgent 必须按顺序执行，不能并行。** 后续批次需要在前一批的记忆基础上迭代。
+**重要：SubAgent 必须按顺序执行，不能并行。** 因为后续批次需要在前一批的记忆基础上迭代。
 
 按 `totalBatches` 循环，由主 Agent 自己判断当前是不是最后一批，然后再组装 prompt：
 - 第 1 批：使用创建批模板
@@ -74,4 +75,4 @@
 - 若当前批次 `N === totalBatches`，则在上述模板后**额外追加**“最后一批时，主 Agent 需要额外追加到 SubAgent prompt 的指令”
 - 收到 `✅ BATCH_N_COMPLETE` 后再发起下一批
 
-每批完成后在回复中简要记录产出，不写入任何文件。
+Memory 系统的文件体系具有严格规范，全流程中不需要，也不允许额外创建文档用于向用户汇报工作。
