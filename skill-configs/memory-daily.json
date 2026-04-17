@@ -6,6 +6,7 @@
   "components": [
     "head",
     "sessions-gather-today",
+    "daily-batch-analysis",
     "memory-load",
     "sessions-analyze",
     "corrections-extract",
