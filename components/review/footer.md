@@ -3,7 +3,7 @@
 先读取规范文件，了解 memory_log 的写作要求：
 
 ```
-/Users/jay/Documents/GitHub/Proma_Proactive/components/write-memory-log.md
+/Users/jay/Documents/GitHub/Proma_Proactive/components/memory-log-write.md
 ```
 
 读取最新的 `~/.proma/memory/memory_log/YYYY-MM-DD.md`，对照规范检查。若本次审查对记忆内容有修正，在日志文件末尾**追加**一条记录，说明审查发现的问题及修改内容；若无任何修正，不修改日志。

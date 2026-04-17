@@ -5,10 +5,10 @@
   "numbered": true,
   "components": [
     "head",
-    "bootstrap-memory",
-    "gather-all",
-    "load-memory",
-    "batch-analysis",
-    "footer-init"
+    "memory-bootstrap",
+    "sessions-gather-all",
+    "memory-load",
+    "init-batch-analysis",
+    "init-complete"
   ]
 }

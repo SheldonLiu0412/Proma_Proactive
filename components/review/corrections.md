@@ -3,7 +3,7 @@
 先读取规范文件，了解 corrections 的写作要求和字段规范：
 
 ```
-/Users/jay/Documents/GitHub/Proma_Proactive/components/extract-corrections.md
+/Users/jay/Documents/GitHub/Proma_Proactive/components/corrections-extract.md
 ```
 
 再读取当前记录：

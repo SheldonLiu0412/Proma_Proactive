@@ -5,15 +5,15 @@
   "numbered": true,
   "components": [
     "head",
-    "gather-today",
-    "load-memory",
-    "analyze-sessions",
-    "extract-corrections",
+    "sessions-gather-today",
+    "memory-load",
+    "sessions-analyze",
+    "corrections-extract",
     "profile-update",
     "profile-rules",
-    "update-sop",
-    "write-memory-log",
-    "write-diary",
-    "footer-daily"
+    "sop-update",
+    "memory-log-write",
+    "diary-write",
+    "daily-complete"
   ]
 }

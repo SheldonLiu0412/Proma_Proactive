@@ -211,7 +211,7 @@ npx tsx src/scripts/memory-ops.ts correction:add \
 ### detail 写作要求
 
 - **agent-behavior**：描述性语气，简洁（一两句话），通用表述，不出现具体会话/批次元信息。例："向用户反问澄清时，使用 AskUserQuestion 工具呈现选项，避免在回复文字中直接列出问题"
-- **skill-update**：说明错误事实 + 应该怎么改。例："gather-today Step 1 的 --output 参数应补全 .json 扩展名，否则后续读取失败"
+- **skill-update**：说明错误事实 + 应该怎么改。例："sessions-gather-today Step 1 的 --output 参数应补全 .json 扩展名，否则后续读取失败"
 - **user-preference**：描述用户偏好的具体表现和适用场景，不要写成"用户要求Agent做X"的命令句，而是"用户倾向于…"的观察句。例："代码交付后用户倾向于不需要逐行解释，直接给出结果即可；多次在收到详细注释后要求删除"
 - **注意**：不写"必须"、"严禁"等过强命令式措辞；不超过三句话
 - **禁止创建额外文件**：所有纠正数据通过 `correction:add` 写入 `corrections/active.json`，不要创建任何临时/汇总文件
@@ -337,7 +337,7 @@ npx tsx src/scripts/memory-ops.ts sop:update --id <id> --status <candidate|valid
 
 - 如果当天的 diary 已存在（手动运行了多次），追加更新而不是覆盖
 
-## 完成标志
+## 阶段 10：完成标志
 
 **当所有步骤全部完成后，你必须在最终回复中输出以下标志：**
 

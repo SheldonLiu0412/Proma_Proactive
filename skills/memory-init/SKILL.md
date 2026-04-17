@@ -152,10 +152,10 @@ npx tsx src/scripts/plan-batches.ts \
 ```
 在完成本批核心记忆更新后，还需要继续执行以下收尾工作：
 
-1. 用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/write-memory-log.md`，遵从其规范撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`
+1. 用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/memory-log-write.md`，遵从其规范撰写变更日志到 `~/.proma/memory/memory_log/YYYY-MM-DD.md`
    - 这里的日志需要覆盖**整个初始化过程**，而非仅最后一批
    - 内容至少包含：处理概况（总会话数、批次数）、最终记忆状态、关键洞察
-2. 再用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/write-diary.md`，遵从其规范撰写日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`
+2. 再用 Read 工具读取 `/Users/jay/Documents/GitHub/Proma_Proactive/components/diary-write.md`，遵从其规范撰写日记到 `~/.proma/memory/diary/YYYY-MM-DD.md`
 3. 标记所有会话完成：`state:complete`
 ```
 
@@ -171,7 +171,7 @@ npx tsx src/scripts/plan-batches.ts \
 
 Memory 系统的文件体系具有严格规范，全流程中不需要，也不允许额外创建文档用于向用户汇报工作。
 
-## 验证与收尾
+## 阶段 5：验证与收尾
 
 所有批次任务完成后：
 

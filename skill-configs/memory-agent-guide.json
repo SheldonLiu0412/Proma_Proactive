@@ -8,8 +8,8 @@
   "components": [
     "guide/head",
     "profile-rules",
-    "update-sop",
-    "extract-corrections",
+    "sop-update",
+    "corrections-extract",
     "guide/state-complete",
     "guide/principles"
   ]
