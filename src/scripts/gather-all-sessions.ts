@@ -2,7 +2,7 @@
 /**
  * gather-all-sessions.ts
  *
- * 收集所有历史会话（Agent + Chat），用于 Dream 初始化。
+ * 收集所有历史会话（Agent + Chat），用于 Memory 初始化。
  * 过滤掉 Dream 工作区自身的会话和空会话。
  * Agent 会话额外过滤少于 minTurns 轮对话的（默认 3）。
  *

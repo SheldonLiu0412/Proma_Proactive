@@ -464,10 +464,10 @@ function renderMarkdown(digest: SessionDigest): string {
     }
 
     if (turn.assistantText) {
-      // Assistant 回复只保留前200字：Dream Agent 关注的是用户意图和工具操作，不需要完整回复
+      // Assistant 回复只保留前300字：Memory Agent 关注的是用户意图和工具操作，不需要完整回复
       const assistantDisplay =
-        turn.assistantText.length > 200
-          ? turn.assistantText.slice(0, 200) + "\n...(截断)"
+        turn.assistantText.length > 300
+          ? turn.assistantText.slice(0, 300) + "\n...(截断)"
           : turn.assistantText;
       lines.push(`**Agent**: ${assistantDisplay}`);
     }

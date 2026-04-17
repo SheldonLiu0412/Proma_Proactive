@@ -2,7 +2,7 @@
 /**
  * memory-ops.ts
  *
- * Dream 记忆存储 CRUD 操作脚本。
+ * Memory 存储 CRUD 操作脚本。
  * 保证数据格式一致性，自动处理归档逻辑。
  *
  * 用法：
