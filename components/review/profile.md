@@ -1,6 +1,6 @@
 ## 审查用户画像
 
-先读取规范文件，了解 profile.md 的写作要求：
+先用 Read 工具读取规范文件，了解 profile.md 的写作要求：
 
 ```
 /Users/jay/Documents/GitHub/Proma_Proactive/components/profile-rules.md

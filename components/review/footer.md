@@ -1,6 +1,6 @@
 ## 审查变更日志
 
-先读取规范文件，了解 memory_log 的写作要求：
+先用 Read 工具读取规范文件，了解 memory_log 的写作要求：
 
 ```
 /Users/jay/Documents/GitHub/Proma_Proactive/components/memory-log-write.md

@@ -137,7 +137,7 @@ npx tsx src/scripts/plan-batches.ts \
 ## 步骤
 
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[N-1].sessionIds`
-2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`corrections/active.json`、`sop:list`
+2. 读取当前记忆状态：`~/.proma/memory/profile.md`、`~/.proma/memory/corrections/active.json`，并执行 `cd /Users/jay/Documents/GitHub/Proma_Proactive && npx tsx src/scripts/memory-ops.ts sop:list`
 3. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
 4. 这是增量更新批：读取现有 `~/.proma/memory/profile.md`，在原结构上执行局部更新（规范见工作指南）
 5. 标记完成（见工作指南）

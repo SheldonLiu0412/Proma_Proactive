@@ -1,17 +1,12 @@
 ## 审查纠正与偏好记录
 
-先读取规范文件，了解 corrections 的写作要求和字段规范：
+先用 Read 工具读取规范文件，了解 corrections 的写作要求和字段规范：
 
 ```
 /Users/jay/Documents/GitHub/Proma_Proactive/components/corrections-extract.md
 ```
 
-再读取当前记录：
-
-```bash
-cd /Users/jay/Documents/GitHub/Proma_Proactive
-cat ~/.proma/memory/corrections/active.json
-```
+再用 Read 工具读取当前记录：`~/.proma/memory/corrections/active.json`
 
 对照规范逐条检查，发现格式错误或内容不符合要求的条目：
 
