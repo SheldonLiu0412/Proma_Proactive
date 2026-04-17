@@ -1,22 +1,54 @@
 # Proma Memory
 
-> Proma 的长期记忆与主动智能系统 — 让 AI 助手真正"看见"你
+> Proma 的长期记忆与主动智能系统插件 — 帮助 Proma 更好地"看见"你，成为更懂你的 Agent 助手
 
 ## 这是什么
 
-Memory 是 [Proma](https://github.com/ErlichLiu/Proma) 桌面 AI 助手的前瞻性子系统。它的核心理念是：**更敏锐地看到用户，更主动地帮助用户。**
+Proma Memory 是为 [Proma](https://github.com/ErlichLiu/Proma) 桌面 AI 助手提供的长期记忆与主动智能系统插件。它的核心理念是：**更敏锐地看到用户，更主动地帮助用户。**
 
-AI 助手不该只是被动地等待指令。Memory 通过持续观察用户的日常对话，逐步理解用户是谁、在做什么、怎样工作——然后在合适的时机，主动提供更贴合的帮助。这些记忆不是冷冰冰的数据库条目，而是一套有温度的、持续演化的认知模型。
+AI 助手不该只是被动地等待指令。Memory 通过持续观察用户的日常对话，逐步理解用户是谁、在做什么、怎样工作；然后在合适的时机，主动提供更贴合的帮助。这些记忆不是冷冰冰的数据库条目，而是一套有温度的、持续演化的认知模型。
 
 ## 当前状态
 
-🚧 **原型阶段** — 尚未集成进 Proma 产品，作为独立的工作区 + Skill 运行。
+🚧 **原型阶段** — 该插件当前仅为 Demo 阶段，还有非常多的功能未做，也还没经过足够的测试，以帮助其效果迭代和演化；暂时的计划是在后续跟随 Proma 插件系统一起上线，当前仅能够通过独立的工作区 + Skill 运行体验。
 
 ## 接入方式
 
-这个仓库支持作为外置插件接入其他用户的 Proma 环境。
+这个仓库支持作为外置插件接入其他用户的 Proma 环境，与 Proma 项目环境完全隔离，装载和卸载无任何影响。
 
-首次接入时，直接让 Agent 执行 `memory-setup` 即可；用户侧需要的手动操作由该 Skill 在对话中逐步引导完成。
+### 第一步：在任意 Proma Agent 模式工作区发送以下 prompt
+
+把下面这段 prompt **完整复制**，在 Proma Agent 模式的任意工作区新建会话后发送给 Agent：
+
+```
+任务：帮我接入 Proma Memory 插件。
+
+步骤如下，请依次执行：
+1. 把仓库 clone 到本地合适的位置：
+   git clone https://github.com/SheldonLiu0412/Proma_Proactive.git
+2. 进入项目目录，检查依赖：
+   cd Proma_Proactive
+   node --version && npx tsx --version
+   如果 tsx 不可用，执行 npm install
+3. 构建所有 skills：
+   node build.mjs
+4. 把 memory-setup skill 复制到当前工作区的 skills 目录（你需要先告诉我当前工作区的 slug，或者帮我查一下）：
+   mkdir -p ~/.proma/agent-workspaces/<当前工作区slug>/skills/memory-setup
+   cp skills/memory-setup/SKILL.md ~/.proma/agent-workspaces/<当前工作区slug>/skills/memory-setup/SKILL.md
+5. 完成后告诉我，询问是否开始 memory-setup 流程。
+```
+
+> Agent 会自动完成 clone、构建、复制，并在需要时询问你工作区名称。
+
+### 第二步：发送 `memory-setup` 开始正式配置
+
+上一步完成后，确认 memory-setup Skill已正常装载，可以在**同一个会话**里发送：
+
+```
+memory-setup
+```
+
+Agent 会引导你绑定专属 Memory 工作区，完成后会告知后续如何初始化和使用。
 
 ### 已实现
 
