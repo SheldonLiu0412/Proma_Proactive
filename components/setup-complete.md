@@ -55,7 +55,7 @@
 
 已经自动向 Memory 专用工作区部署了记忆查询和记忆修改 Skills，可以自行添加至其它所需工作区，通过 /skill 的方式主动查询记忆或专程修改记忆，查询和修改操作依赖 Anthropic 兼容格式 LLM API 配置，配置方式为：
 
-修改 {{PROJECT_ROOT}}/config/llm-config.json，填入你的 API 地址、密钥和模型配置。
+修改 {{PROJECT_ROOT}}/config/llm-config.json，填入你的 API 地址、密钥和模型配置（仅替换value）。
 
 需要的话在当前会话内随时告知，我来帮助你完成配置。
 
