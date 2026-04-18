@@ -33,7 +33,7 @@ interface MemorySnapshot {
 interface EditOperation {
   operation: string;
   target: string;
-  action: "append" | "edit" | "create" | "delete";
+  action: "add" | "edit" | "delete";
   content?: string;
   summary?: string;   // correction 专用：简短摘要
   detail?: string;    // correction 专用：详细说明
@@ -560,7 +560,7 @@ ${targetContext}
     {
       "operation": "操作类型",
       "target": "操作目标（优先使用上述列表中的准确ID，用户描述模糊时根据summary/title匹配）",
-      "action": "append|edit|create|delete",
+      "action": "add|edit|delete",
       "content": "具体内容（通用字段，所有操作类型都需填写）",
       "summary": "简短摘要（correction:add/edit 专用。根据用户需求填充该字段。）",
       "detail": "详细说明（correction:add/edit 专用。与 summary 配合使用，提供比摘要更详细的背景或示例）",
@@ -572,7 +572,7 @@ ${targetContext}
 }
 
 可用操作及对应的 action 值（严格按此映射）：
-- profile:append → action 必须为 "append"
+- profile:add → action 必须为 "add"
 - profile:edit → action 必须为 "edit"
 - correction:add → action 必须为 "add"，type 必填
 - correction:edit → action 必须为 "edit"
@@ -589,9 +589,9 @@ correction 类型判断规则：
 - 用户描述模糊时（如"删除讲不要催复的那条"），根据上述完整列表的 summary/title 匹配到准确 ID
 - 只输出 JSON，不要其他内容
 - content/summary/detail 必须包含完整可直接写入的内容
-- profile 只能编辑，脚本只返回指导
+- 不用关注 profile ，该文件会由脚本会自动返回指导意见
 - action 必须严格使用上面列出的值，不要用其他值
-- correction:add/edit 时，优先使用 summary + detail 分别描述；如用户只给了一句话，只用 content 也可以`;
+`;
 
   return callLLMJson<EditPlan>(planPrompt, {
     system: "你是一个精准的记忆操作规划助手。只输出 JSON，不输出任何其他内容。",
