@@ -5,7 +5,6 @@
 让这个仓库变成一个可运行的外置 Proma Memory 插件：
 - Memory 数据存储在 `{{MEMORY_ROOT}}/`
 - 运行配置写入 `{{PROJECT_ROOT}}/config/memory-instance.local.json`
-- 目标工作区的 skills 同步到 `~/.proma/agent-workspaces/<slug>/skills/`
 
 ## 基本原则
 

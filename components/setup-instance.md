@@ -33,4 +33,4 @@ cd {{PROJECT_ROOT}}
 npx tsx src/scripts/install-memory-instance.ts --workspace "<用户刚才创建的工作区名称>"
 ```
 
-3. 安装脚本会自动完成：写入配置 → 重建所有 skills → 同步到目标工作区
+3. 安装脚本会自动完成：写入配置 → 重建所有 skills → 同步到目标工作区（无需你手动再做）
