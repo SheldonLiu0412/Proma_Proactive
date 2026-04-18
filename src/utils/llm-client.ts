@@ -200,8 +200,9 @@ export async function callLLM(
           `LLM API error: ${response.status} ${response.statusText}\n${errorText}`
         );
 
-        // 不可重试的错误直接抛出
+        // 不可重试的错误直接抛出（标记后抛出，外层 catch 识别）
         if (!isRetryableError(response.status, errorText)) {
+          (err as any).__nonRetryable = true;
           throw err;
         }
 
@@ -220,17 +221,15 @@ export async function callLLM(
 
       return result;
     } catch (err: any) {
+      // 被标记为不可重试的 HTTP 错误，立即抛出
+      if (err.__nonRetryable) {
+        throw err;
+      }
+
       // 网络错误（fetch 抛出的）可重试
       if (err.message?.includes("fetch") || err.message?.includes("network") || err.code === "ECONNREFUSED" || err.code === "ETIMEDOUT") {
         lastError = err;
         console.error(`[llm-client] 网络错误，将在稍后重试: ${err.message}`);
-        continue;
-      }
-
-      // 如果不是最后一次尝试，且不是已标记为可重试的，也重试
-      if (attempt < retries && lastError === null) {
-        lastError = err;
-        console.error(`[llm-client] 请求异常，将在稍后重试: ${err.message}`);
         continue;
       }
 
