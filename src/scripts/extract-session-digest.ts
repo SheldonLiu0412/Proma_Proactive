@@ -14,7 +14,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { PATHS } from "../utils/paths.js";
+import { PATHS } from "../utils/paths.mjs";
 import { formatTimestamp, formatDuration } from "../utils/time.js";
 
 // ---------- 类型定义 ----------
@@ -190,7 +190,7 @@ function extractAssistantContent(msg: RawMessage): {
     // skip thinking blocks
   }
 
-  return { segments, toolCalls, readOnlyCounts: {} };
+  return { segments, toolCalls };
 }
 
 function formatToolCall(

@@ -20,6 +20,7 @@ import { randomUUID } from "crypto";
 import {
   readFileSync,
   writeFileSync,
+  renameSync,
   appendFileSync,
   existsSync,
   mkdirSync,
@@ -53,7 +54,7 @@ const MODEL_ID = "claude-sonnet-4-6";
 const COMPLETION_MARKER = "✅ MEMORY_COMPLETE";
 
 // 保活配置
-const MAX_RETRIES = parseInt(getArg("--max-retries") || "5");
+const MAX_RETRIES = parseInt(getArg("--max-retries") || "5", 10);
 const RETRY_DELAY_MS = 5000;
 const DRY_RUN = process.argv.includes("--dry-run");
 let cachedQueryFn = null;
@@ -81,6 +82,16 @@ function log(level, msg) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 原子写 JSON：先写入同目录下的 .tmp 文件，再 rename 覆盖。
+ * 避免与 Proma 主进程并发读写 agent-sessions.json 时发生 lost-update。
+ */
+function atomicWriteJson(path, data) {
+  const tmp = `${path}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(tmp, JSON.stringify(data, null, 2));
+  renameSync(tmp, path);
 }
 
 async function getQueryFn() {
@@ -116,7 +127,7 @@ function registerPromaSession(title) {
   };
 
   index.sessions.push(meta);
-  writeFileSync(AGENT_SESSIONS_JSON, JSON.stringify(index, null, 2));
+  atomicWriteJson(AGENT_SESSIONS_JSON, index);
 
   // 确保消息日志目录存在
   if (!existsSync(AGENT_SESSIONS_DIR)) {
@@ -142,7 +153,7 @@ function updatePromaSession(promaSessionId, updates) {
     ...updates,
     updatedAt: Date.now(),
   };
-  writeFileSync(AGENT_SESSIONS_JSON, JSON.stringify(index, null, 2));
+  atomicWriteJson(AGENT_SESSIONS_JSON, index);
 }
 
 /**
@@ -173,65 +184,34 @@ function createSessionCwd(promaSessionId) {
   return sessionCwd;
 }
 
-// ---------- System Prompt（复刻 Proma buildSystemPrompt） ----------
+// ---------- Prompt 模板（从 components/runner/ 读取） ----------
 
-function buildSystemPrompt(sessionId) {
-  return `# Proma Agent
+const RUNNER_COMPONENTS_DIR = join(PROACTIVE_DIR, "components", "runner");
 
-你是 Proma Agent — 一个集成在 Proma 桌面应用中的通用AI助手，由 Claude Agent SDK 驱动。你有极强的自主性和主观能动性，可以完成任何任务，尽最大努力帮助用户。
-
-## 工具使用指南
-
-- 读取文件用 Read，搜索文件名用 Glob，搜索内容用 Grep — 不要用 Bash 执行 cat/find/grep 等命令替代专用工具
-- 编辑已有文件用 Edit（精确字符串替换），创建新文件用 Write — Edit 的 old_string 必须是文件中唯一匹配的字符串
-- 执行 shell 命令用 Bash — 破坏性操作（rm、git push --force 等）前先确认
-- 文本输出直接写在回复中，不要用 echo/printf
-- 当存在内置工具时，优先采用内置工具完成任务，避免滥用 MCP、shell 等过于通用的工具来完成简单任务
-- **路径规则**：你的 cwd 是会话目录，不是项目源码目录。操作附加工作目录中的文件时，Glob/Grep/Read 的 path 参数必须使用**绝对路径**（如 \`/Users/xxx/project/src\`），不要用相对路径
-- 处理多个独立任务时，尽量并行调用工具以提高效率
-- **先搜后写**：修改代码前先用 Grep/Glob 搜索现有实现，复用已有模式和工具函数，最小化变更范围
-
-## SubAgent 委派策略
-
-**核心原则：先探索再行动，用 SubAgent 保持主上下文干净。根据任务复杂度选择合适的模型。**
-
-Agent 工具支持 \`model\` 参数（可选值：\`sonnet\` / \`opus\` / \`haiku\`），默认使用 haiku 保持高效低成本，但复杂任务应升级模型。
-
-### 内置 SubAgent
-
-- **explorer**（默认 haiku）：代码库探索。快速搜索文件、理解项目结构、收集相关上下文
-- **researcher**（默认 haiku，复杂调研升级 sonnet）：技术调研。方案对比、依赖评估、架构分析
-- **code-reviewer**（默认 haiku，关键变更升级 sonnet）：代码审查。任务完成后调用，检查代码质量
-
-## 工作区
-
-- 工作区名称: ${MEMORY_WORKSPACE_NAME}
-- 工作区根目录: ~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/
-- 当前会话目录（cwd）: ~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/${sessionId}/
-- Skills 目录: ~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/skills/
-
-### .context 目录层级
-
-存在两个 \`.context/\` 目录，用途不同：
-- **会话级** \`.context/\`（当前 cwd 下）：当前会话的临时工作台
-- **工作区级** \`~/.proma/agent-workspaces/${MEMORY_WORKSPACE_SLUG}/workspace-files/.context/\`：跨会话共享的持久文档
-
-## 文档输出与知识管理
-
-**核心原则：有价值的产出要沉淀为文件，不要只留在聊天流中消失。**
-
-- CLAUDE.md：跨会话有价值的项目知识
-- .context/note.md：研究与分析输出
-- .context/todo.md：任务进度追踪
-
-## 交互规范
-
-1. 优先使用中文回复，保留技术术语
-2. 自称 Proma Agent
-3. 回复简洁直接，不要冗长`;
+function readComponent(name) {
+  return readFileSync(join(RUNNER_COMPONENTS_DIR, name), "utf-8");
 }
 
-// ---------- Dynamic Context（复刻 Proma buildDynamicContext） ----------
+/**
+ * 简单模板替换：将 ${VAR} 占位符替换为 vars 中的对应值。
+ * 未知变量会抛错以便在启动时暴露配置遗漏。
+ */
+function renderTemplate(template, vars) {
+  return template.replace(/\$\{([A-Z_]+)\}/g, (_, key) => {
+    if (!(key in vars)) {
+      throw new Error(`Missing template variable: ${key}`);
+    }
+    return vars[key];
+  });
+}
+
+function buildSystemPrompt(sessionId) {
+  return renderTemplate(readComponent("system-prompt.md"), {
+    MEMORY_WORKSPACE_NAME,
+    MEMORY_WORKSPACE_SLUG,
+    SESSION_ID: sessionId,
+  });
+}
 
 function buildDynamicContext(sessionCwd) {
   const now = new Date();
@@ -244,77 +224,33 @@ function buildDynamicContext(sessionCwd) {
     minute: "2-digit",
     timeZoneName: "short",
   });
-
-  return `**当前时间: ${timeStr}**
-
-<workspace_state>
-工作区: ${MEMORY_WORKSPACE_NAME}
-</workspace_state>
-
-<working_directory>${sessionCwd}</working_directory>`;
+  return renderTemplate(readComponent("dynamic-context.md"), {
+    TIME_STR: timeStr,
+    MEMORY_WORKSPACE_NAME,
+    SESSION_CWD: sessionCwd,
+  });
 }
-
-// ---------- Mentioned Tools 注入（复刻 Proma orchestrator） ----------
-
-function buildMentionedToolsPrefix() {
-  const qualifiedName = `proma-workspace-${MEMORY_WORKSPACE_SLUG}:memory-daily`;
-  return `<mentioned_tools>
-用户在消息中明确引用了以下工具，请在本次回复中主动调用：
-- Skill: ${qualifiedName}（请立即调用此 Skill）
-</mentioned_tools>`;
-}
-
-// ---------- Memory Prompt ----------
 
 function buildMemoryPrompt(targetDate, sessionCwd) {
-  const dynamicCtx = buildDynamicContext(sessionCwd);
-  const mentionPrefix = buildMentionedToolsPrefix();
-
-  const userMessage = `今天是 ${targetDate}，请执行 memory-daily 流程。
-
-关键提示：
-- 工具脚本在 ${PROACTIVE_DIR}/src/scripts/ 下，使用 npx tsx 运行
-- 运行脚本时先 cd ${PROACTIVE_DIR}
-- Memory 存储在 ${PROACTIVE_DIR}/.memory/ 下
-- 今日日期参数: --date ${targetDate}
-
-完成所有步骤后请输出完成标志：${COMPLETION_MARKER}`;
-
-  return `${dynamicCtx}\n\n${mentionPrefix}\n\n${userMessage}`;
+  return renderTemplate(readComponent("memory-prompt.md"), {
+    DYNAMIC_CONTEXT: buildDynamicContext(sessionCwd),
+    SKILL_QUALIFIED_NAME: `proma-workspace-${MEMORY_WORKSPACE_SLUG}:memory-daily`,
+    TARGET_DATE: targetDate,
+    PROACTIVE_DIR,
+    COMPLETION_MARKER,
+  });
 }
 
 function buildResumePrompt(sessionCwd) {
-  const dynamicCtx = buildDynamicContext(sessionCwd);
-  return `${dynamicCtx}\n\n你的 Memory 任务被中断了，请继续执行未完成的步骤。
-完成后请输出完成标志：${COMPLETION_MARKER}`;
+  return renderTemplate(readComponent("resume-prompt.md"), {
+    DYNAMIC_CONTEXT: buildDynamicContext(sessionCwd),
+    COMPLETION_MARKER,
+  });
 }
 
-// ---------- 内置 SubAgent（复刻 Proma buildBuiltinAgents） ----------
+// ---------- 内置 SubAgent（从 builtin-agents.json 加载） ----------
 
-const BUILTIN_AGENTS = {
-  "code-reviewer": {
-    description: "代码审查子代理。在完成代码修改后调用，审查代码质量、发现潜在问题、提出改进建议。",
-    prompt: `你是一个专注于代码质量的审查员。你的职责是：
-1. 审查变更的代码，关注逻辑错误、重复代码、命名清晰度、不必要的复杂度、潜在性能问题
-2. 检查规范一致性：读取 CLAUDE.md（如存在），确认变更符合项目规范
-3. 输出格式：按严重程度分类（🔴 必须修复 / 🟡 建议改进 / 🟢 值得肯定），每条意见附带文件路径和行号
-保持客观、具体，不要泛泛而谈。如果代码质量很好，直接说"审查通过，无需修改"。`,
-    tools: ["Read", "Glob", "Grep", "Bash"],
-    model: "haiku",
-  },
-  explorer: {
-    description: "代码库探索子代理。用于快速搜索文件、理解项目结构、查找相关代码。",
-    prompt: `你是一个高效的代码库探索员。并行使用 Glob 和 Grep 搜索，返回信息时包含具体的文件路径和关键代码片段。保持简洁，只返回与任务相关的信息。`,
-    tools: ["Read", "Glob", "Grep", "Bash"],
-    model: "haiku",
-  },
-  researcher: {
-    description: "技术调研子代理。用于对比技术方案、评估依赖库、分析架构选型。",
-    prompt: `你是一个技术调研员。输出格式：问题概述、方案对比（表格）、推荐方案、风险提示、参考来源。保持客观，给出有依据的建议。`,
-    tools: ["Read", "Glob", "Grep", "Bash", "WebSearch", "WebFetch"],
-    model: "haiku",
-  },
-};
+const BUILTIN_AGENTS = JSON.parse(readComponent("builtin-agents.json"));
 
 // ---------- SDK 选项 ----------
 
@@ -376,24 +312,14 @@ async function runQuery(prompt, sessionCwd, resumeSessionId, promaSessionId) {
       : "Starting new Memory SDK session"
   );
 
-  // 持久化 user 消息到 Proma JSONL
-  if (!resumeSessionId) {
-    appendPromaMessage(promaSessionId, {
-      type: "user",
-      message: {
-        content: [{ type: "text", text: prompt }],
-      },
-      parent_tool_use_id: null,
-    });
-  } else {
-    appendPromaMessage(promaSessionId, {
-      type: "user",
-      message: {
-        content: [{ type: "text", text: prompt }],
-      },
-      parent_tool_use_id: null,
-    });
-  }
+  // 持久化 user 消息到 Proma JSONL（首轮与 resume 统一写入）
+  appendPromaMessage(promaSessionId, {
+    type: "user",
+    message: {
+      content: [{ type: "text", text: prompt }],
+    },
+    parent_tool_use_id: null,
+  });
 
   const queryIterator = query({
     prompt,
@@ -506,6 +432,15 @@ async function main() {
   log("INFO", `Target date: ${targetDate}`);
   log("INFO", `Max retries: ${MAX_RETRIES}`);
 
+  // dry-run 只渲染 prompt，不发起 API 调用，无需 key 或 SDK
+  if (DRY_RUN) {
+    log("INFO", "[DRY RUN] System prompt:");
+    console.log(buildSystemPrompt("dry-run-session-id"));
+    console.log("\n--- User prompt ---\n");
+    console.log(buildMemoryPrompt(targetDate, "/tmp/dry-run-cwd"));
+    process.exit(0);
+  }
+
   // 验证环境
   if (!process.env.ANTHROPIC_API_KEY) {
     log("ERROR", "ANTHROPIC_API_KEY is not set");
@@ -515,14 +450,6 @@ async function main() {
   if (!SDK_CLI_PATH || !existsSync(SDK_CLI_PATH)) {
     log("ERROR", `SDK CLI not found: ${SDK_CLI_PATH}`);
     process.exit(1);
-  }
-
-  if (DRY_RUN) {
-    log("INFO", "[DRY RUN] System prompt:");
-    console.log(buildSystemPrompt("dry-run-session-id"));
-    console.log("\n--- User prompt ---\n");
-    console.log(buildMemoryPrompt(targetDate, "/tmp/dry-run-cwd"));
-    process.exit(0);
   }
 
   // 1. 在 Proma 元数据层注册会话

@@ -34,4 +34,5 @@ config/memory-instance.local.json
 # Run memory-setup to rebuild locally after cloning
 skills/*/SKILL.md
 
-# Dream runtime data (lives in ~/.proma/dream/, not in this repo)
+# Conductor workspace context
+.context/

@@ -98,6 +98,9 @@ Init 完成后自动触发，对生成的记忆文件进行质量审查与修正
 ```
 components/              # 可复用 Skill 组件（markdown 片段）
 ├── head.md              # 通用头部
+├── setup-head.md            # memory-setup 开头
+├── setup-instance.md        # memory-setup 实例安装指令
+├── setup-complete.md        # memory-setup 结束标志
 ├── sessions-gather-today.md  # 收集今日会话
 ├── sessions-gather-all.md    # 收集全量历史会话
 ├── memory-load.md            # 加载当前记忆
@@ -107,10 +110,9 @@ components/              # 可复用 Skill 组件（markdown 片段）
 ├── memory-log-write.md       # 写入变更日志
 ├── diary-write.md            # 写入散文日记
 ├── memory-bootstrap.md       # 初始化/重建记忆目录
-├── profile-create.md    # 首次创建画像
 ├── profile-update.md    # 增量更新画像
 ├── profile-rules.md     # 用户画像规范
-├── dream.md             # 生成梦境（默认关闭，需要可在configs中自行打开）
+├── dream.md             # 生成梦境（默认未启用，如需开启在 skill-configs/memory-daily.json 的 components 数组末尾加入 "dream" 即可）
 ├── init-batch-analysis.md    # 批量分析（init 用）
 ├── daily-batch-analysis.md   # 批量分析（daily 用，NeedsBatching 模式）
 ├── daily-complete.md         # Daily 结束标志
@@ -163,8 +165,8 @@ src/
 │   ├── memory-ops.ts             # 记忆存储 CRUD 操作
 │   └── install-memory-instance.ts # 安装/配置实例
 ├── utils/
-│   ├── paths.ts                  # 路径常量
-│   ├── paths.mjs                 # 路径常量
+│   ├── paths.mjs                 # 路径常量（带 JSDoc 类型）
+│   ├── sessions.ts               # 会话读取/解析的共享工具
 │   ├── instance-config.mjs       # 实例配置读取工具
 │   └── time.ts                   # 时间工具
 └── memory-runner.mjs             # 启动脚本（实验性）
@@ -206,6 +208,8 @@ node build.mjs memory-daily # 只构建指定配置
 
 每个 JSON 配置声明组件列表，`build.mjs` 按顺序拼接 markdown 文件并自动编号阶段（`numbered: true` 时）。
 
+> ⚠️ 构建产物 `skills/*/SKILL.md` 内嵌了**本机绝对路径**（`PROJECT_ROOT` / `MEMORY_ROOT`），已在 `.gitignore` 中排除。切勿直接分发构建产物；他人接入时应 clone 源码后重新运行 `node build.mjs`，或通过 `memory-setup` 流程自动完成。
+
 ## 技术依赖
 
 | 依赖 | 说明 |
@@ -217,4 +221,4 @@ node build.mjs memory-daily # 只构建指定配置
 
 ## 许可
 
-ISC
+MIT

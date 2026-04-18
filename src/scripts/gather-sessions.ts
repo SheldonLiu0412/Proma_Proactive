@@ -14,43 +14,24 @@
  * 默认日期为今天，输出到 stdout（或指定文件）。
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { execSync } from "child_process";
+import { writeFileSync, existsSync, mkdirSync } from "fs";
+import { execFileSync } from "child_process";
 import { resolve } from "path";
-import { PATHS } from "../utils/paths.js";
+import { PATHS } from "../utils/paths.mjs";
 import { fileURLToPath } from "url";
 import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { getDayRange, formatTimestamp } from "../utils/time.js";
+import {
+  countJsonlLines,
+  getLastMessageTimestamp,
+  loadJson,
+  buildWorkspaceMap,
+  type AgentSessionMeta,
+  type ChatSessionMeta,
+  type WorkspaceMeta,
+} from "../utils/sessions.js";
 
 // ---------- 类型定义 ----------
-
-interface AgentSessionMeta {
-  id: string;
-  title: string;
-  workspaceId?: string;
-  channelId?: string;
-  sdkSessionId?: string;
-  createdAt: number;
-  updatedAt: number;
-  archived?: boolean;
-  pinned?: boolean;
-}
-
-interface ChatSessionMeta {
-  id: string;
-  title: string;
-  modelId?: string;
-  channelId?: string;
-  createdAt: number;
-  updatedAt: number;
-  archived?: boolean;
-}
-
-interface WorkspaceMeta {
-  id: string;
-  name: string;
-  slug: string;
-}
 
 interface DreamState {
   lastRunAt: string | null;
@@ -93,50 +74,6 @@ interface GatherResult {
     totalUpdated: number;
     totalSkipped: number;
   };
-}
-
-// ---------- 工具函数 ----------
-
-function countJsonlLines(filePath: string): number {
-  if (!existsSync(filePath)) return 0;
-  const content = readFileSync(filePath, "utf-8");
-  return content.split("\n").filter((line) => line.trim().length > 0).length;
-}
-
-/**
- * 读取 JSONL 文件最后一条消息的 _createdAt 时间戳。
- * 这是判断会话是否有真实新内容的关键——metadata 的 updatedAt 可能因重新打开而变化。
- */
-function getLastMessageTimestamp(filePath: string): number | null {
-  if (!existsSync(filePath)) return null;
-  const content = readFileSync(filePath, "utf-8");
-  const lines = content.split("\n").filter((line) => line.trim().length > 0);
-  if (lines.length === 0) return null;
-  // 从最后一行往前找，取第一个有 _createdAt 的
-  for (let i = lines.length - 1; i >= 0; i--) {
-    try {
-      const msg = JSON.parse(lines[i]);
-      if (msg._createdAt) return msg._createdAt;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-function loadJson<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  return JSON.parse(readFileSync(filePath, "utf-8")) as T;
-}
-
-function buildWorkspaceMap(
-  workspaces: WorkspaceMeta[]
-): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const ws of workspaces) {
-    map.set(ws.id, ws.name);
-  }
-  return map;
 }
 
 // ---------- 主逻辑 ----------
@@ -341,9 +278,10 @@ function main() {
       const outFile = resolve(digestsDir, `${sess.id}.md`);
       if (existsSync(outFile)) { success++; continue; }
       try {
-        const fromArg = sess.kind === "updated" ? `--from ${sess.incrementalFrom}` : "";
-        execSync(
-          `npx tsx "${extractScript}" --id ${sess.id} --type ${sess.type} ${fromArg} --output "${outFile}"`,
+        const fromArgs = sess.kind === "updated" ? ["--from", String(sess.incrementalFrom)] : [];
+        execFileSync(
+          "npx",
+          ["tsx", extractScript, "--id", sess.id, "--type", sess.type, ...fromArgs, "--output", outFile],
           { cwd, stdio: "pipe", timeout: 30000 }
         );
         success++;
@@ -361,8 +299,9 @@ function main() {
     const scriptDir = import.meta.dirname ?? fileURLToPath(new URL(".", import.meta.url));
     const planScript = resolve(scriptDir, "plan-batches.ts");
     const cwd = resolve(scriptDir, "..", "..");
-    execSync(
-      `npx tsx "${planScript}" --mode daily --input "${outputPath}" --output "${planBatchesPath}"`,
+    execFileSync(
+      "npx",
+      ["tsx", planScript, "--mode", "daily", "--input", outputPath, "--output", planBatchesPath],
       { cwd, stdio: "inherit" }
     );
   }

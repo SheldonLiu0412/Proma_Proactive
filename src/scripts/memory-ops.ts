@@ -26,7 +26,7 @@
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
-import { PATHS } from "../utils/paths.js";
+import { PATHS } from "../utils/paths.mjs";
 
 // ---------- 工具函数 ----------
 
@@ -121,7 +121,7 @@ function sopCreate(opts: Record<string, string>) {
     .toLowerCase()
     .replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-")
     .replace(/^-|-$/g, "")
-    .slice(0, 40);
+    .slice(0, 40) || "untitled";
   const fileName = `${id}_${slug}.md`;
   const d = today();
 
@@ -240,15 +240,6 @@ function correctionAdd(opts: Record<string, string>) {
   }
 
   const corrections = loadJson<Correction[]>(PATHS.correctionsActive, []);
-
-  // 去重：target + summary 高度相似则跳过
-  const duplicate = corrections.find(
-    (c) => c.target === target && c.summary === summary
-  );
-  if (duplicate) {
-    console.log(`Skipped (duplicate): ${duplicate.id} — ${summary}`);
-    return;
-  }
 
   const id = genId("corr", corrections);
   const entry: Correction = {
