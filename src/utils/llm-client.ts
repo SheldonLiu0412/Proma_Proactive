@@ -5,9 +5,7 @@
  * Anthropic API 兼容的 LLM 客户端。
  * 支持 MiniMax 等 Anthropic 格式兼容的 provider。
  *
- * 配置优先级（从高到低）：
- *   1. process.env.ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY / ANTHROPIC_MODEL
- *   2. config/llm-config.json
+ * 配置来源：config/llm-config.json
  *
  * 重试策略：
  *   - 调用层：可重试错误（网络错误、5xx、429）自动指数退避重试，最多 3 次
@@ -83,30 +81,30 @@ function loadJson<T>(path: string): T | null {
 }
 
 export function loadLLMConfig(): LLMConfig {
-  const envBaseUrl = process.env.ANTHROPIC_BASE_URL;
-  const envApiKey = process.env.ANTHROPIC_API_KEY;
-  const envModel = process.env.ANTHROPIC_MODEL;
   const fileConfig = loadJson<Partial<LLMConfig>>(CONFIG_PATH);
 
-  const baseUrl = envBaseUrl || fileConfig?.baseUrl || "https://api.minimaxi.com/anthropic";
-  const apiKey = envApiKey || fileConfig?.apiKey;
-  const model = envModel || fileConfig?.model || "MiniMax-M2.7-highspeed";
+  if (!fileConfig) {
+    throw new Error(`LLM config not found: ${CONFIG_PATH}`);
+  }
+
+  const baseUrl = fileConfig.baseUrl || "https://api.minimaxi.com/anthropic";
+  const apiKey = fileConfig.apiKey;
+  const model = fileConfig.model || "MiniMax-M2.7-highspeed";
 
   if (!apiKey) {
     throw new Error(
-      `LLM API key not found. Please set ANTHROPIC_API_KEY environment variable ` +
-        `or configure apiKey in ${CONFIG_PATH}`
+      `LLM API key not found. Please configure apiKey in ${CONFIG_PATH}`
     );
   }
 
   return {
-    provider: fileConfig?.provider || "anthropic-compatible",
+    provider: fileConfig.provider || "anthropic-compatible",
     baseUrl,
     apiKey,
     model,
-    temperature: fileConfig?.temperature ?? 0.3,
-    maxTokens: fileConfig?.maxTokens ?? 4096,
-    thinking: fileConfig?.thinking ?? false,
+    temperature: fileConfig.temperature ?? 0.3,
+    maxTokens: fileConfig.maxTokens ?? 4096,
+    thinking: fileConfig.thinking ?? false,
   };
 }
 
