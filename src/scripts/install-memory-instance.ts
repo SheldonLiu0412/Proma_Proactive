@@ -2,8 +2,8 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, copyFileSync } from "fs";
 import { dirname, join, resolve } from "path";
-import { execSync } from "child_process";
-import { PATHS } from "../utils/paths.js";
+import { execFileSync } from "child_process";
+import { PATHS } from "../utils/paths.mjs";
 import {
   getConfigPaths,
   loadMemoryInstanceConfig,
@@ -149,7 +149,7 @@ function main() {
 
   saveConfig(workspace, promaRepoRoot);
 
-  execSync("node build.mjs", {
+  execFileSync("node", ["build.mjs"], {
     cwd: PATHS.projectRoot,
     stdio: "inherit",
   });

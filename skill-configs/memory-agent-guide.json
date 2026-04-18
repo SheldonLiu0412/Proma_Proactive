@@ -5,6 +5,7 @@
   "output": "docs/memory-agent-guide.md",
   "hasFrontmatter": false,
   "numbered": false,
+  "renderTemplate": false,
   "components": [
     "guide/head",
     "profile-rules",

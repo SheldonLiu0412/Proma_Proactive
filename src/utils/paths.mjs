@@ -7,6 +7,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = resolve(__dirname, "../..");
 
+/**
+ * @typedef {Object} ProjectPaths
+ * @property {string} projectRoot
+ * @property {string} proma
+ * @property {string} agentSessions
+ * @property {string} agentSessionLogs
+ * @property {string} conversations
+ * @property {string} conversationLogs
+ * @property {string} workspaces
+ * @property {string} workspacesDir
+ * @property {string} memory
+ * @property {string} memoryReadme
+ * @property {string} profile
+ * @property {string} profileTemplate
+ * @property {string} sopCandidates
+ * @property {string} sopIndex
+ * @property {string} journal
+ * @property {string} diary
+ * @property {string} dreams
+ * @property {string} dreamResidues
+ * @property {string} state
+ * @property {string} correctionsActive
+ * @property {string} correctionsArchive
+ */
+
+/** @type {ProjectPaths} */
 export const PATHS = {
   projectRoot: PROJECT_ROOT,
   proma: PROMA_DIR,

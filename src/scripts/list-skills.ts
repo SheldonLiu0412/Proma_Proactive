@@ -7,6 +7,7 @@
  * 用法：
  *   npx tsx src/scripts/list-skills.ts
  *   npx tsx src/scripts/list-skills.ts --format json   # JSON 输出
+ *   npx tsx src/scripts/list-skills.ts --workspace <slug>  # 只看单个工作区
  */
 
 import { readdirSync, readFileSync, existsSync } from "fs";
@@ -41,7 +42,7 @@ function parseFrontmatter(content: string): Record<string, string> {
   return result;
 }
 
-function collectSkills(): SkillEntry[] {
+function collectSkills(options: { workspace?: string } = {}): SkillEntry[] {
   const seen = new Set<string>();
   const skills: SkillEntry[] = [];
 
@@ -49,7 +50,11 @@ function collectSkills(): SkillEntry[] {
     return skills;
   }
 
-  for (const wsSlug of readdirSync(WORKSPACES_DIR)) {
+  const workspaceSlugs = options.workspace
+    ? [options.workspace]
+    : readdirSync(WORKSPACES_DIR);
+
+  for (const wsSlug of workspaceSlugs) {
     const skillsDir = join(WORKSPACES_DIR, wsSlug, "skills");
     if (!existsSync(skillsDir)) continue;
 
@@ -74,12 +79,24 @@ function collectSkills(): SkillEntry[] {
   return skills.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const args = process.argv.slice(2);
-const formatJson = args.includes("--format") && args[args.indexOf("--format") + 1] === "json";
+function parseArgs(argv: string[]): { format: "text" | "json"; workspace?: string } {
+  const out: { format: "text" | "json"; workspace?: string } = { format: "text" };
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--format" && argv[i + 1] === "json") {
+      out.format = "json";
+      i++;
+    } else if (argv[i] === "--workspace" && argv[i + 1]) {
+      out.workspace = argv[++i];
+    }
+  }
+  return out;
+}
 
-const skills = collectSkills();
+const { format, workspace } = parseArgs(process.argv.slice(2));
 
-if (formatJson) {
+const skills = collectSkills({ workspace });
+
+if (format === "json") {
   console.log(JSON.stringify(skills, null, 2));
 } else {
   if (skills.length === 0) {

@@ -16,42 +16,24 @@
  * 输出：按 createdAt 升序排列的全部有效会话列表。
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve } from "path";
-import { execSync } from "child_process";
-import { PATHS } from "../utils/paths.js";
+import { execFileSync } from "child_process";
+import { fileURLToPath } from "url";
+import { PATHS } from "../utils/paths.mjs";
 import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { formatTimestamp } from "../utils/time.js";
+import {
+  countJsonlLines,
+  countUserTurns,
+  getLastMessageTimestamp,
+  loadJson,
+  type AgentSessionMeta,
+  type ChatSessionMeta,
+  type WorkspaceMeta,
+} from "../utils/sessions.js";
 
 // ---------- 类型定义 ----------
-
-interface AgentSessionMeta {
-  id: string;
-  title: string;
-  workspaceId?: string;
-  channelId?: string;
-  sdkSessionId?: string;
-  createdAt: number;
-  updatedAt: number;
-  archived?: boolean;
-  pinned?: boolean;
-}
-
-interface ChatSessionMeta {
-  id: string;
-  title: string;
-  modelId?: string;
-  channelId?: string;
-  createdAt: number;
-  updatedAt: number;
-  archived?: boolean;
-}
-
-interface WorkspaceMeta {
-  id: string;
-  name: string;
-  slug: string;
-}
 
 interface AllSession {
   id: string;
@@ -78,54 +60,6 @@ interface GatherAllResult {
     totalFiltered: number;
     totalValid: number;
   };
-}
-
-// ---------- 工具函数 ----------
-
-function countJsonlLines(filePath: string): number {
-  if (!existsSync(filePath)) return 0;
-  const content = readFileSync(filePath, "utf-8");
-  return content.split("\n").filter((line) => line.trim().length > 0).length;
-}
-
-/**
- * 统计 JSONL 中用户消息的数量（即对话轮数）。
- */
-function countUserTurns(filePath: string): number {
-  if (!existsSync(filePath)) return 0;
-  const content = readFileSync(filePath, "utf-8");
-  const lines = content.split("\n").filter((line) => line.trim().length > 0);
-  let turns = 0;
-  for (const line of lines) {
-    try {
-      const msg = JSON.parse(line);
-      if (msg.role === "user" || msg.type === "user") turns++;
-    } catch {
-      continue;
-    }
-  }
-  return turns;
-}
-
-function getLastMessageTimestamp(filePath: string): number | null {
-  if (!existsSync(filePath)) return null;
-  const content = readFileSync(filePath, "utf-8");
-  const lines = content.split("\n").filter((line) => line.trim().length > 0);
-  if (lines.length === 0) return null;
-  for (let i = lines.length - 1; i >= 0; i--) {
-    try {
-      const msg = JSON.parse(lines[i]);
-      if (msg._createdAt) return msg._createdAt;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-function loadJson<T>(filePath: string, fallback: T): T {
-  if (!existsSync(filePath)) return fallback;
-  return JSON.parse(readFileSync(filePath, "utf-8")) as T;
 }
 
 // ---------- 主逻辑 ----------
@@ -335,8 +269,9 @@ function main() {
   // 批量提取摘要
   if (digestsDir) {
     mkdirSync(digestsDir, { recursive: true });
-    const extractScript = resolve(import.meta.dirname ?? new URL(".", import.meta.url).pathname, "extract-session-digest.ts");
-    const cwd = resolve(extractScript, "..", "..");
+    const scriptDir = import.meta.dirname ?? fileURLToPath(new URL(".", import.meta.url));
+    const extractScript = resolve(scriptDir, "extract-session-digest.ts");
+    const cwd = resolve(scriptDir, "..", "..");
     let success = 0;
     let failed = 0;
 
@@ -347,8 +282,9 @@ function main() {
         continue; // 已存在则跳过
       }
       try {
-        execSync(
-          `npx tsx "${extractScript}" --id ${sess.id} --type ${sess.type} --output "${outFile}"`,
+        execFileSync(
+          "npx",
+          ["tsx", extractScript, "--id", sess.id, "--type", sess.type, "--output", outFile],
           { cwd, stdio: "pipe", timeout: 30000 }
         );
         success++;

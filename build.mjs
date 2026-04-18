@@ -36,13 +36,16 @@ function renderTemplate(content) {
 
 /**
  * 读取组件内容。组件名可以包含子目录，如 "guide/profile"。
+ * @param name 组件名
+ * @param render 是否对内容应用 {{VAR}} 模板替换（默认 true）
  */
-function readComponent(name) {
+function readComponent(name, render = true) {
   const path = join(COMPONENTS_DIR, `${name}.md`);
   try {
-    return renderTemplate(readFileSync(path, 'utf-8').trim());
+    const raw = readFileSync(path, 'utf-8').trim();
+    return render ? renderTemplate(raw) : raw;
   } catch (err) {
-    throw new Error(`Failed to read component: ${name} (${path})`);
+    throw new Error(`Failed to read component: ${name} (${path})`, { cause: err });
   }
 }
 
@@ -57,9 +60,15 @@ function isStructuralComponent(name) {
 /**
  * 给组件内容的第一个 `## ` 标题加上阶段序号前缀
  * "## 原标题" → "## 阶段 N：原标题"
+ * 若找不到匹配的二级标题，返回原内容并给调用方用于 warn。
  */
 function addPhaseNumber(content, n) {
-  return content.replace(/^(##\s+)(.+)$/m, `$1阶段 ${n}：$2`);
+  let matched = false;
+  const result = content.replace(/^(##\s+)(.+)$/m, (_, prefix, title) => {
+    matched = true;
+    return `${prefix}阶段 ${n}：${title}`;
+  });
+  return { content: result, matched };
 }
 
 /**
@@ -75,6 +84,7 @@ function buildSkill(configPath) {
     output,          // 可选：自定义输出路径（相对于项目根目录）
     hasFrontmatter = true,  // 默认生成 frontmatter
     numbered = false,       // 是否给 body 组件加阶段序号
+    renderTemplate: doRender = true,  // 是否对组件内容替换 {{VAR}}；文档类产物应关闭以保持可提交的占位符形态
   } = config;
 
   // 确定输出路径
@@ -91,11 +101,17 @@ function buildSkill(configPath) {
   // 拼接各组件
   let phaseCounter = 0;
   const sections = components.map(componentName => {
-    let content = readComponent(componentName);
+    let content = readComponent(componentName, doRender);
 
     if (numbered && !isStructuralComponent(componentName)) {
       phaseCounter++;
-      content = addPhaseNumber(content, phaseCounter);
+      const { content: renumbered, matched } = addPhaseNumber(content, phaseCounter);
+      if (!matched) {
+        console.warn(
+          `  ⚠ numbered=true but component "${componentName}" has no "## " heading to renumber`
+        );
+      }
+      content = renumbered;
     }
 
     return content;
