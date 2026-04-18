@@ -20,7 +20,7 @@ const PROJECT_ROOT = resolve(__dirname, "../..");
  * @property {string} memory
  * @property {string} memoryReadme
  * @property {string} profile
- * @property {string} profileTemplate
+ * @property {string} profileTemplate  源模板，位于仓库 docs/ 下，运行时直读，不再复制
  * @property {string} sopCandidates
  * @property {string} sopIndex
  * @property {string} journal
@@ -45,7 +45,7 @@ export const PATHS = {
   memory: join(PROJECT_ROOT, ".memory"),
   memoryReadme: join(PROJECT_ROOT, ".memory", "README.md"),
   profile: join(PROJECT_ROOT, ".memory", "profile.md"),
-  profileTemplate: join(PROJECT_ROOT, ".memory", "profile-template.md"),
+  profileTemplate: join(PROJECT_ROOT, "docs", "profile-template.md"),
   sopCandidates: join(PROJECT_ROOT, ".memory", "sop-candidates"),
   sopIndex: join(PROJECT_ROOT, ".memory", "sop-candidates", "index.json"),
   journal: join(PROJECT_ROOT, ".memory", "memory_log"),
