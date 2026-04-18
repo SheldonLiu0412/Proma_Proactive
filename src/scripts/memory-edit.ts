@@ -36,6 +36,7 @@ interface EditOperation {
   action: "append" | "edit" | "create" | "delete";
   content?: string;
   section?: string;
+  type?: "agent-behavior" | "skill-update" | "user-preference"; // correction 专用
   reasoning: string;
 }
 
@@ -310,8 +311,9 @@ ${op.content ? `\n建议内容：\n${op.content}` : ""}
   // Correction 操作
   if (operation.startsWith("correction:")) {
     if (op.action === "add") {
+      const corrType = op.type || "user-preference";
       const { success, result } = runMemoryOps("correction:add", [
-        "--type", "user-preference",
+        "--type", corrType,
         "--target", op.target || "general",
         "--summary", op.content || "",
         "--detail", op.content || "",
@@ -559,6 +561,7 @@ ${targetContext}
       "action": "append|edit|create|delete",
       "content": "内容",
       "section": "段落（profile用）",
+      "type": "agent-behavior|skill-update|user-preference（correction:add/edit 时必填）",
       "reasoning": "理由"
     }
   ]
@@ -567,10 +570,15 @@ ${targetContext}
 可用操作及对应的 action 值（严格按此映射）：
 - profile:append → action 必须为 "append"
 - profile:edit → action 必须为 "edit"
-- correction:add → action 必须为 "add"（添加纠偏记录）
+- correction:add → action 必须为 "add"，type 必填
 - correction:edit → action 必须为 "edit"
 - correction:delete → action 必须为 "delete"
 - sop:delete → action 必须为 "delete"
+
+correction 类型判断规则：
+- "agent-behavior" → 用户对 Agent 行为方式的纠正（如"不要催复"、"不要反问"）
+- "skill-update" → 用户对 Skill 内容或逻辑的纠正（如"这个 Skill 的步骤缺了一步"）
+- "user-preference" → 用户的个人偏好（如"我喜欢用英文注释"、"结果要输出 markdown"）
 
 注意：
 - 可以输出多个 operation，批量执行
