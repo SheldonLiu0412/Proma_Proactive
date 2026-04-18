@@ -1,0 +1,11 @@
+{
+  "name": "memory-search",
+  "version": "1.0.0",
+  "description": "检索用户的长期记忆。仅当用户明确主动要求搜索记忆、查找之前的信息、recall 某事时才调用。不允许在普通对话中自行启动。",
+  "numbered": true,
+  "components": [
+    "memory-search/head",
+    "memory-search/instruction",
+    "memory-search/complete"
+  ]
+}
