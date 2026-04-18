@@ -113,15 +113,7 @@ function loadProfileGuidelines(): string {
     }
   }
 
-  _profileGuidelines = `用户画像写作规范：
-- 视角：以 Proma（"我"）的口吻，第三人称（"TA"）书写；
-- 结构：用编号标题做内容分级，基本信息和行为模式放最上面，篇幅不超过600字；
-- 风格：像人物期刊——温暖、有情感色彩、鲜活；
-- 内容：从事件中读人，而非记事件。画像描述用户本身，而非用户做过什么；
-- 最后章节：固定为"Agent 需知"——记录操作性知识；
-- 不堆叠增加：更新前判断新信息是否已被覆盖或可合并，默认不加；
-- 不留元信息：正文中不出现"由XXX生成"、"最后更新于"等系统信息。`;
-  return _profileGuidelines;
+  throw new Error(`无法读取画像规范文件: ${guidelinesPath}`);
 }
 
 // ---------- 构建记忆快照 ----------
@@ -315,30 +307,40 @@ ${op.content ? `\n建议内容：\n${op.content}` : ""}
     return { op, success: false, result: `未知的 correction 操作: ${op.action}`, error: "UNKNOWN_ACTION" };
   }
 
-  // SOP 操作
+  // SOP 操作 —— 只支持删除，直接操作文件
   if (operation.startsWith("sop:")) {
-    if (op.action === "create") {
-      const { success, result } = runMemoryOps("sop:create", [
-        "--title", op.target || "新SOP",
-        "--content", op.content || "",
-        "--source", "memory-edit",
-      ]);
-      return { op, success, result };
-    }
-    if (op.action === "update") {
-      const { success, result } = runMemoryOps("sop:update", [
-        "--id", op.target || "",
-        "--content", op.content || "",
-      ]);
-      return { op, success, result };
-    }
     if (op.action === "delete") {
-      const { success, result } = runMemoryOps("sop:delete", [
-        "--id", op.target || "",
-      ]);
-      return { op, success, result };
+      if (!op.target) {
+        return { op, success: false, result: "删除失败: 未指定 SOP ID", error: "MISSING_TARGET" };
+      }
+
+      const index = loadJson<Array<{ id: string; file: string }>>(PATHS.sopIndex, []);
+      const idx = index.findIndex((s) => s.id === op.target);
+      if (idx === -1) {
+        return { op, success: false, result: `SOP ${op.target} 不存在`, error: "NOT_FOUND" };
+      }
+
+      const entry = index[idx];
+      const mdPath = join(PATHS.sopCandidates, entry.file);
+
+      // 从索引中移除
+      index.splice(idx, 1);
+      writeFileSync(PATHS.sopIndex, JSON.stringify(index, null, 2) + "\n", "utf-8");
+
+      // 删除 MD 文件（如存在）
+      if (existsSync(mdPath)) {
+        try {
+          const { unlinkSync } = require("fs");
+          unlinkSync(mdPath);
+        } catch (e: any) {
+          return { op, success: false, result: `索引已更新，但删除 MD 文件失败: ${e.message}`, error: "FILE_DELETE_FAILED" };
+        }
+      }
+
+      return { op, success: true, result: `已删除 SOP ${op.target}: ${entry.file}（索引 + 文档）` };
     }
-    return { op, success: false, result: `未知的 SOP 操作: ${op.action}`, error: "UNKNOWN_ACTION" };
+
+    return { op, success: false, result: `SOP 只支持 delete 操作，不支持 ${op.action}`, error: "UNSUPPORTED_ACTION" };
   }
 
   // Fallback
@@ -452,15 +454,50 @@ function formatResults(results: OperationResult[], includeProfileGuidelines: boo
   return lines.join("\n");
 }
 
+// ---------- 目标解析上下文 ----------
+
+function buildTargetContext(): string {
+  const parts: string[] = [];
+
+  // Corrections 列表
+  const corrections = loadJson<Array<{ id: string; summary: string; detail: string; type: string }>>(PATHS.correctionsActive, []);
+  if (corrections.length > 0) {
+    parts.push("=== 当前行为纠偏记录（corrections/active.json）===");
+    for (const c of corrections) {
+      parts.push(`- ${c.id}: [${c.type}] ${c.summary}`);
+    }
+  } else {
+    parts.push("=== 当前行为纠偏记录：无 ===");
+  }
+
+  // SOP 列表
+  const sops = loadJson<Array<{ id: string; title: string; status: string }>>(PATHS.sopIndex, []);
+  if (sops.length > 0) {
+    parts.push("\n=== 当前 SOP 候选（sop-candidates/index.json）===");
+    for (const s of sops) {
+      parts.push(`- ${s.id}: ${s.title} (${s.status})`);
+    }
+  } else {
+    parts.push("\n=== 当前 SOP 候选：无 ===");
+  }
+
+  return parts.join("\n");
+}
+
 // ---------- LLM 规划 ----------
 
 async function generatePlan(instruction: string, snapshotText: string): Promise<EditPlan> {
+  const targetContext = buildTargetContext();
+
   const planPrompt = `你是记忆操作规划助手。请分析用户的操作需求，输出一个或多个结构化操作计划。
 
 当前日期: ${today()}
 
 当前记忆状态：
 ${snapshotText}
+
+可操作的完整目标列表：
+${targetContext}
 
 用户操作需求: "${instruction}"
 
@@ -469,7 +506,7 @@ ${snapshotText}
   "operations": [
     {
       "operation": "操作类型",
-      "target": "操作目标",
+      "target": "操作目标（优先使用上述列表中的准确ID，用户描述模糊时根据summary/title匹配）",
       "action": "append|edit|create|delete",
       "content": "内容",
       "section": "段落（profile用）",
@@ -480,11 +517,12 @@ ${snapshotText}
 
 可用操作：
 - profile:append/edit/create → 返回画像编辑指导（脚本不写入，Agent手动Edit）
-- correction:add/edit/delete → 纠偏记录增删改
-- sop:create/update/delete → SOP增删改
+- correction:add/edit/delete → 纠偏记录增删改（target 为 corr_xxx ID）
+- sop:delete → 删除SOP候选（同时删除索引和MD文档，target 为 sop_xxx ID）
 
 注意：
 - 可以输出多个 operation，批量执行
+- 用户描述模糊时（如"删除讲不要催复的那条"），根据上述完整列表的 summary/title 匹配到准确 ID
 - 只输出 JSON，不要其他内容
 - content 必须包含完整可直接写入的内容
 - profile 只能编辑，脚本只返回指导`;
