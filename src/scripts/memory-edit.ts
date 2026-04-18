@@ -232,6 +232,40 @@ function listMemoryStructure(): string {
   return lines.join("\n");
 }
 
+// ---------- 文件锁 ----------
+
+const LOCK_FILE = join(PATHS.memory, ".edit.lock");
+const LOCK_TIMEOUT_MS = 30000; // 30秒超时
+
+function acquireLock(): boolean {
+  if (existsSync(LOCK_FILE)) {
+    try {
+      const lockContent = readFileSync(LOCK_FILE, "utf-8").trim();
+      const lockTime = parseInt(lockContent, 10);
+      if (!isNaN(lockTime) && Date.now() - lockTime < LOCK_TIMEOUT_MS) {
+        return false; // 锁被占用且未超时
+      }
+      // 锁已超时，强制释放
+      console.error("[memory-edit] 检测到超时锁，强制释放...");
+    } catch {
+      // 锁文件损坏，强制释放
+    }
+  }
+  writeFileSync(LOCK_FILE, String(Date.now()), "utf-8");
+  return true;
+}
+
+function releaseLock(): void {
+  try {
+    if (existsSync(LOCK_FILE)) {
+      const { unlinkSync } = require("fs");
+      unlinkSync(LOCK_FILE);
+    }
+  } catch {
+    // 忽略释放失败
+  }
+}
+
 // ---------- 操作执行 ----------
 
 function runMemoryOps(command: string, args: string[]): { success: boolean; result: string } {
@@ -353,13 +387,28 @@ ${op.content ? `\n建议内容：\n${op.content}` : ""}
 }
 
 async function executeOperations(operations: EditOperation[]): Promise<OperationResult[]> {
+  // 获取文件锁
+  if (!acquireLock()) {
+    return operations.map((op) => ({
+      op,
+      success: false,
+      result: "操作失败: 另一个 memory-edit 进程正在执行，请稍后再试。",
+      error: "LOCKED",
+    }));
+  }
+
   const results: OperationResult[] = [];
 
-  for (const op of operations) {
-    console.error(`[memory-edit] 执行操作: ${op.operation} / ${op.action} (target: ${op.target})`);
-    const result = executeSingleOperation(op);
-    results.push(result);
-    console.error(`[memory-edit] 操作结果: ${result.success ? "成功" : "失败"}`);
+  try {
+    for (const op of operations) {
+      console.error(`[memory-edit] 执行操作: ${op.operation} / ${op.action} (target: ${op.target})`);
+      const result = executeSingleOperation(op);
+      results.push(result);
+      console.error(`[memory-edit] 操作结果: ${result.success ? "成功" : "失败"}`);
+    }
+  } finally {
+    // 无论成功失败都释放锁
+    releaseLock();
   }
 
   return results;
@@ -515,17 +564,21 @@ ${targetContext}
   ]
 }
 
-可用操作：
-- profile:append/edit/create → 返回画像编辑指导（脚本不写入，Agent手动Edit）
-- correction:add/edit/delete → 纠偏记录增删改（target 为 corr_xxx ID）
-- sop:delete → 删除SOP候选（同时删除索引和MD文档，target 为 sop_xxx ID）
+可用操作及对应的 action 值（严格按此映射）：
+- profile:append → action 必须为 "append"
+- profile:edit → action 必须为 "edit"
+- correction:add → action 必须为 "add"（添加纠偏记录）
+- correction:edit → action 必须为 "edit"
+- correction:delete → action 必须为 "delete"
+- sop:delete → action 必须为 "delete"
 
 注意：
 - 可以输出多个 operation，批量执行
 - 用户描述模糊时（如"删除讲不要催复的那条"），根据上述完整列表的 summary/title 匹配到准确 ID
 - 只输出 JSON，不要其他内容
 - content 必须包含完整可直接写入的内容
-- profile 只能编辑，脚本只返回指导`;
+- profile 只能编辑，脚本只返回指导
+- action 必须严格使用上面列出的值，不要用其他值`;
 
   return callLLMJson<EditPlan>(planPrompt, {
     system: "你是一个精准的记忆操作规划助手。只输出 JSON，不输出任何其他内容。",
