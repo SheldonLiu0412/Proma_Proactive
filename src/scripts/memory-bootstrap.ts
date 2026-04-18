@@ -11,7 +11,7 @@
  *   npx tsx src/scripts/memory-bootstrap.ts --wipe
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { PATHS } from "../utils/paths.mjs";
@@ -26,7 +26,6 @@ interface DreamState {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, "../..");
-const PROFILE_TEMPLATE_SOURCE = resolve(REPO_ROOT, "docs/profile-template.md");
 const MEMORY_README_SOURCE = resolve(REPO_ROOT, "docs/memory-readme.md");
 const TEMPLATE_VARS: Record<string, string> = {
   PROJECT_ROOT: PATHS.projectRoot,
@@ -54,25 +53,6 @@ function ensureTextFile(path: string, value: string) {
   if (existsSync(path)) return;
   ensureDir(dirname(path));
   writeFileSync(path, value, "utf-8");
-}
-
-function ensureCopiedFile(from: string, to: string) {
-  if (!existsSync(from)) {
-    console.error(`Required source file not found: ${from}`);
-    process.exit(1);
-  }
-  if (existsSync(to)) return;
-  ensureDir(dirname(to));
-  copyFileSync(from, to);
-}
-
-function overwriteCopiedFile(from: string, to: string) {
-  if (!existsSync(from)) {
-    console.error(`Required source file not found: ${from}`);
-    process.exit(1);
-  }
-  ensureDir(dirname(to));
-  copyFileSync(from, to);
 }
 
 function renderTemplate(content: string): string {
@@ -116,10 +96,8 @@ function main() {
   ensureJsonFile(PATHS.dreamResidues, []);
 
   if (wipe) {
-    overwriteCopiedFile(PROFILE_TEMPLATE_SOURCE, PATHS.profileTemplate);
     renderCopiedFile(MEMORY_README_SOURCE, PATHS.memoryReadme, true);
   } else {
-    ensureCopiedFile(PROFILE_TEMPLATE_SOURCE, PATHS.profileTemplate);
     renderCopiedFile(MEMORY_README_SOURCE, PATHS.memoryReadme, false);
   }
 
