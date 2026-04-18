@@ -14,7 +14,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { PATHS } from "../utils/paths.js";
+import { PATHS } from "../utils/paths.mjs";
 
 interface DreamState {
   lastRunAt: string | null;

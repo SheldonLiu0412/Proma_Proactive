@@ -1,18 +1,25 @@
 {
   "name": "proma_proactive",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Proma 的长期记忆与主动智能系统插件 — 帮助 Proma 更好地看见用户，成为更懂你的 Agent 助手",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node build.mjs",
+    "bootstrap": "npx tsx src/scripts/memory-bootstrap.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SheldonLiu0412/Proma_Proactive.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "proma",
+    "memory",
+    "agent",
+    "claude",
+    "long-term-memory",
+    "proactive-ai"
+  ],
+  "author": "SheldonLiu0412",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/SheldonLiu0412/Proma_Proactive/issues"
