@@ -14,7 +14,7 @@
  * 输出：纯文本操作结果（直接输出到 stdout）
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
 import { execFileSync } from "child_process";
 import { callLLM, callLLMJson } from "../utils/llm-client";
@@ -35,6 +35,8 @@ interface EditOperation {
   target: string;
   action: "append" | "edit" | "create" | "delete";
   content?: string;
+  summary?: string;   // correction 专用：简短摘要
+  detail?: string;    // correction 专用：详细说明
   section?: string;
   type?: "agent-behavior" | "skill-update" | "user-preference"; // correction 专用
   reasoning: string;
@@ -114,7 +116,7 @@ function loadProfileGuidelines(): string {
     }
   }
 
-  throw new Error(`无法读取画像规范文件: ${guidelinesPath}`);
+  return `【画像规范文件缺失：${guidelinesPath}】\n请确保该文件存在，或参考项目 docs/ 目录下的规范模板。`;
 }
 
 // ---------- 构建记忆快照 ----------
@@ -136,11 +138,10 @@ function buildMemorySnapshot(): MemorySnapshot {
   const corrections = loadJson<unknown[]>(PATHS.correctionsActive, []);
   snapshot.correctionsCount = corrections.length;
 
-  const sopIndex = loadJson<{ id: string; title: string; status: string }[]>(PATHS.sopIndex, []);
+  const sopIndex = loadJson<{ id: string; title: string; status: string; file: string }[]>(PATHS.sopIndex, []);
   snapshot.sopCount = sopIndex.length;
 
   if (existsSync(PATHS.diary)) {
-    const { readdirSync } = require("fs");
     const files = readdirSync(PATHS.diary)
       .filter((f: string) => f.endsWith(".md"))
       .sort()
@@ -153,7 +154,6 @@ function buildMemorySnapshot(): MemorySnapshot {
   }
 
   if (existsSync(PATHS.journal)) {
-    const { readdirSync } = require("fs");
     const files = readdirSync(PATHS.journal)
       .filter((f: string) => f.endsWith(".md"))
       .sort()
@@ -190,7 +190,6 @@ function snapshotToText(snapshot: MemorySnapshot): string {
 // ---------- 列出记忆目录结构 ----------
 
 function listMemoryStructure(): string {
-  const { readdirSync, statSync } = require("fs");
 
   function buildTree(dir: string, prefix: string = ""): string[] {
     const lines: string[] = [];
@@ -259,7 +258,6 @@ function acquireLock(): boolean {
 function releaseLock(): void {
   try {
     if (existsSync(LOCK_FILE)) {
-      const { unlinkSync } = require("fs");
       unlinkSync(LOCK_FILE);
     }
   } catch {
@@ -312,11 +310,13 @@ ${op.content ? `\n建议内容：\n${op.content}` : ""}
   if (operation.startsWith("correction:")) {
     if (op.action === "add") {
       const corrType = op.type || "user-preference";
+      const summary = op.summary || op.content || "";
+      const detail = op.detail || op.content || "";
       const { success, result } = runMemoryOps("correction:add", [
         "--type", corrType,
         "--target", op.target || "general",
-        "--summary", op.content || "",
-        "--detail", op.content || "",
+        "--summary", summary,
+        "--detail", detail,
         "--source", "memory-edit",
       ]);
       return { op, success, result };
@@ -325,10 +325,13 @@ ${op.content ? `\n建议内容：\n${op.content}` : ""}
       if (!op.target) {
         return { op, success: false, result: "编辑失败: 未指定 correction ID", error: "MISSING_TARGET" };
       }
-      const { success, result } = runMemoryOps("correction:edit", [
-        "--id", op.target,
-        ...(op.content ? ["--summary", op.content, "--detail", op.content] : []),
-      ]);
+      const args = ["--id", op.target];
+      if (op.summary) args.push("--summary", op.summary);
+      if (op.detail) args.push("--detail", op.detail);
+      if (!op.summary && !op.detail && op.content) {
+        args.push("--summary", op.content, "--detail", op.content);
+      }
+      const { success, result } = runMemoryOps("correction:edit", args);
       return { op, success, result };
     }
     if (op.action === "delete") {
@@ -366,7 +369,6 @@ ${op.content ? `\n建议内容：\n${op.content}` : ""}
       // 删除 MD 文件（如存在）
       if (existsSync(mdPath)) {
         try {
-          const { unlinkSync } = require("fs");
           unlinkSync(mdPath);
         } catch (e: any) {
           return { op, success: false, result: `索引已更新，但删除 MD 文件失败: ${e.message}`, error: "FILE_DELETE_FAILED" };
@@ -403,7 +405,7 @@ async function executeOperations(operations: EditOperation[]): Promise<Operation
 
   try {
     for (const op of operations) {
-      console.error(`[memory-edit] 执行操作: ${op.operation} / ${op.action} (target: ${op.target})`);
+      console.error(`[memory-edit] 执行操作: ${op.operation} / ${op.action} (target: ${op.target || "(未指定)"})`);
       const result = executeSingleOperation(op);
       results.push(result);
       console.error(`[memory-edit] 操作结果: ${result.success ? "成功" : "失败"}`);
@@ -447,7 +449,7 @@ ${errorContext}
 - 如果某个操作确实无法修正（如目标 ID 不存在），将其移除
 - 保持其他成功操作不变（不需要重新执行）
 - 输出格式: { "operations": [...] }
-- 每个 operation 字段同之前：operation, target, action, content, section, reasoning`;
+- 每个 operation 字段同之前：operation, target, action, content, summary, detail, section, type, reasoning`;
 
   try {
     const corrected = await callLLMJson<EditPlan>(retryPrompt, {
@@ -495,7 +497,7 @@ function formatResults(results: OperationResult[], includeProfileGuidelines: boo
     for (const r of otherOps) {
       const status = r.success ? "✅" : "❌";
       lines.push(`\n${status} [${r.op.operation}] ${r.op.action}`);
-      lines.push(`目标: ${r.op.target}`);
+      lines.push(`目标: ${r.op.target || "(未指定)"}`);
       if (r.op.reasoning) lines.push(`理由: ${r.op.reasoning}`);
       lines.push(`结果: ${r.result}`);
       if (r.error) lines.push(`错误码: ${r.error}`);
@@ -522,7 +524,7 @@ function buildTargetContext(): string {
   }
 
   // SOP 列表
-  const sops = loadJson<Array<{ id: string; title: string; status: string }>>(PATHS.sopIndex, []);
+  const sops = loadJson<Array<{ id: string; title: string; status: string; file: string }>>(PATHS.sopIndex, []);
   if (sops.length > 0) {
     parts.push("\n=== 当前 SOP 候选（sop-candidates/index.json）===");
     for (const s of sops) {
@@ -559,7 +561,9 @@ ${targetContext}
       "operation": "操作类型",
       "target": "操作目标（优先使用上述列表中的准确ID，用户描述模糊时根据summary/title匹配）",
       "action": "append|edit|create|delete",
-      "content": "内容",
+      "content": "内容（通用字段，所有操作类型都可使用）",
+      "summary": "简短摘要（correction:add/edit 专用。如用户只给了一句话，可只填 content；如用户明确区分了摘要和详情，分别填入 summary 和 detail）",
+      "detail": "详细说明（correction:add/edit 专用。与 summary 配合使用，提供比摘要更详细的背景或示例）",
       "section": "段落（profile用）",
       "type": "agent-behavior|skill-update|user-preference（correction:add/edit 时必填）",
       "reasoning": "理由"
@@ -584,9 +588,10 @@ correction 类型判断规则：
 - 可以输出多个 operation，批量执行
 - 用户描述模糊时（如"删除讲不要催复的那条"），根据上述完整列表的 summary/title 匹配到准确 ID
 - 只输出 JSON，不要其他内容
-- content 必须包含完整可直接写入的内容
+- content/summary/detail 必须包含完整可直接写入的内容
 - profile 只能编辑，脚本只返回指导
-- action 必须严格使用上面列出的值，不要用其他值`;
+- action 必须严格使用上面列出的值，不要用其他值
+- correction:add/edit 时，优先使用 summary + detail 分别描述；如用户只给了一句话，只用 content 也可以`;
 
   return callLLMJson<EditPlan>(planPrompt, {
     system: "你是一个精准的记忆操作规划助手。只输出 JSON，不输出任何其他内容。",
@@ -630,12 +635,12 @@ async function main() {
       console.error(`[memory-edit] 纠错后生成 ${correctedPlan.operations.length} 个操作`);
       const retryResults = await executeOperations(correctedPlan.operations);
 
-      // 合并结果：成功的替换原来的失败结果
+      // 合并结果：用重试结果替换原始失败项（无论重试成功还是失败）
       for (const retryResult of retryResults) {
         const originalIndex = results.findIndex(
           (r) => !r.success && r.op.operation === retryResult.op.operation && r.op.target === retryResult.op.target
         );
-        if (originalIndex >= 0 && retryResult.success) {
+        if (originalIndex >= 0) {
           results[originalIndex] = retryResult;
         } else {
           results.push(retryResult);
