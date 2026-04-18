@@ -1,9 +1,9 @@
 {
   "provider": "anthropic-compatible",
   "baseUrl": "https://api.minimaxi.com/anthropic",
-  "apiKey": "sk-cp-qrJLBd6AnTzmEH905Qj1a06q7Z9yVAPVcE1hZ_icqpFNWq2C7MkPLnCt2GlM683TjTQVJ4krRoXkJTm5KuUiJsZkrCC5HC0ADgNoqctFowlYLEZCdNt4KT8",
+  "apiKey": "XXX",
   "model": "MiniMax-M2.7-highspeed",
   "temperature": 0.3,
-  "maxTokens": 4096,
+  "maxTokens": 8192,
   "thinking": false
 }
