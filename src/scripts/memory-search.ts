@@ -16,6 +16,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 import { join, basename } from "path";
 import { callLLM, callLLMJson } from "../utils/llm-client";
 import { PATHS } from "../utils/paths.mjs";
+import { todayStr, daysAgoStr } from "../utils/time";
 
 // ---------- 类型定义 ----------
 
@@ -56,13 +57,11 @@ function parseArgs(): { query: string } {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayStr();
 }
 
 function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return daysAgoStr(n);
 }
 
 function extractDateFromFilename(filename: string): string | undefined {
