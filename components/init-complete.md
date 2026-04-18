@@ -20,3 +20,4 @@
 
 ### 记忆初始化完成
 确认全部阶段任务已完成，向用户输出标志：✅ MEMORY_INIT_COMPLETE
+提醒用户初始化流程已完毕，可以在设置-配置中关闭 memory-init 和 memory-init-review skill，若希望重新初始化记忆，可以打开并重新执行

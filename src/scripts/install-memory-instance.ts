@@ -81,6 +81,8 @@ function syncBuiltSkills(targetDir: string) {
 
   for (const skillName of readdirSync(skillsRoot)) {
     if (skillName.startsWith(".")) continue;
+    // setup skill 只用于引导安装，不应同步到 Memory 工作区
+    if (skillName === "memory-setup") continue;
     const from = join(skillsRoot, skillName, "SKILL.md");
     if (!existsSync(from)) continue;
     const to = join(targetDir, skillName, "SKILL.md");
