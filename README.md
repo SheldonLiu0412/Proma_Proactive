@@ -64,6 +64,8 @@ memory-setup
 
 Agent 会引导你创建 Memory 工作区，并自动同步所有 Memory 相关的 Skills 到该工作区，完成后会告知后续如何初始化和使用。
 
+![setup](docs/setup.png)
+
 ## 已实现功能
 
 **Memory Init（全量初始化）**
@@ -102,6 +104,8 @@ Init 完成后自动触发，对生成的记忆文件进行质量审查与修正
 - 精准读取相关记忆文件（profile、corrections、SOP、diary、memory_log），避免全量加载
 - LLM 基于读取的上下文生成精准回答，纯文本输出
 
+![memory-search](docs/memory-search.jpg)
+
 **Memory Edit（记忆操作）**
 
 随时修改用户的长期记忆，有如下特性：
@@ -115,6 +119,8 @@ Init 完成后自动触发，对生成的记忆文件进行质量审查与修正
 | Profile | 编辑指导 | 脚本返回具体规范和建议，Agent 手动 Edit |
 | Correction | add / edit / delete | 脚本直接修改 |
 | SOP | delete（仅删除） | 脚本直接删除 |
+
+![memory-edit](docs/memory-edit.jpg)
 
 ## 规划中的能力
 
