@@ -122,10 +122,9 @@ Agent 在同一会话中反复用同一方式执行 → 报错或被用户指出
 > - `user-preference`："代码修改后不需要解释每一行做了什么，直接给结果" → Agent 没错，但用户倾向于简洁交付
 
 #### skill-update 的额外核查
-在写入 `skill-update` 类型前，**必须**先用 Read 工具完整阅读对应 Skill 的 SKILL.md（通常位于 `~/.proma/agent-workspaces/<slug>/skills/<skill-name>/SKILL.md`，或源仓库的 `{{PROJECT_ROOT}}/skills/<skill-name>/SKILL.md`），确认：
+在写入 `skill-update` 类型前，**必须**先用 Read 工具完整阅读对应 Skill 的 SKILL.md（通常位于 `~/.proma/agent-workspaces/<slug>/skills/<skill-name>/SKILL.md`，确认：
 1. 问题的根源确实在该 Skill 的文本内容中（而不是 Agent 行为问题被误挂到 Skill 上）；
 2. 你的"更新建议"所指向的步骤/段落在该 Skill 里真实存在，避免基于名字相似猜测成相同 Skill；
-3. 建议的修改方向与 Skill 当前表述不冲突（不是已经写了、只是被 Agent 忽略）。
 
 若任一项不成立，应改为 `agent-behavior` 类型或放弃记录。
 

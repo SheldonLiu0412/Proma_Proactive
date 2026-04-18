@@ -1,0 +1,554 @@
+#!/usr/bin/env npx tsx
+/**
+ * memory-edit.ts
+ *
+ * 记忆操作脚本。
+ * 接收用户操作需求，通过 LLM 分析并输出结构化操作计划数组，映射到具体指令执行。
+ * 支持多操作批量执行和操作层重试（失败→收集错误→二次调用模型修正→重试）。
+ *
+ * 用法：
+ *   npx tsx src/scripts/memory-edit.ts --instruction "把我对 DeepSeek 的偏好加到画像里"
+ *   npx tsx src/scripts/memory-edit.ts --instruction "删除 SOP 候选 sop_001"
+ *   npx tsx src/scripts/memory-edit.ts --list
+ *
+ * 输出：纯文本操作结果（直接输出到 stdout）
+ */
+
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+import { execFileSync } from "child_process";
+import { callLLM, callLLMJson } from "../utils/llm-client";
+import { PATHS } from "../utils/paths.mjs";
+
+// ---------- 类型定义 ----------
+
+interface MemorySnapshot {
+  profile: string;
+  correctionsCount: number;
+  sopCount: number;
+  recentDiaries: string[];
+  recentLogs: string[];
+}
+
+interface EditOperation {
+  operation: string;
+  target: string;
+  action: "append" | "edit" | "create" | "delete";
+  content?: string;
+  section?: string;
+  reasoning: string;
+}
+
+interface EditPlan {
+  operations: EditOperation[];
+}
+
+interface OperationResult {
+  op: EditOperation;
+  success: boolean;
+  result: string;
+  error?: string;
+}
+
+// ---------- 工具函数 ----------
+
+function parseArgs(): { mode: "edit" | "list"; instruction: string } {
+  const args = process.argv.slice(2);
+  let instruction = "";
+  let listMode = false;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--instruction" && i + 1 < args.length) {
+      instruction = args[++i];
+    }
+    if (args[i] === "--list") {
+      listMode = true;
+    }
+  }
+
+  if (listMode) {
+    return { mode: "list", instruction: "" };
+  }
+
+  if (!instruction.trim()) {
+    console.error("Usage: npx tsx src/scripts/memory-edit.ts --instruction <instruction>");
+    console.error("       npx tsx src/scripts/memory-edit.ts --list");
+    process.exit(1);
+  }
+  return { mode: "edit", instruction };
+}
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadJson<T>(path: string, fallback: T): T {
+  if (!existsSync(path)) return fallback;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+// ---------- Profile 规范读取（缓存） ----------
+
+let _profileGuidelines: string | null = null;
+
+function loadProfileGuidelines(): string {
+  if (_profileGuidelines !== null) return _profileGuidelines;
+
+  const guidelinesPath = join(PATHS.projectRoot, "components/profile-rules.md");
+  if (existsSync(guidelinesPath)) {
+    try {
+      const raw = readFileSync(guidelinesPath, "utf-8");
+      // 去掉模板变量前缀，清理行号前缀
+      _profileGuidelines = raw
+        .replace(/\{\{[A-Z_]+\}\}/g, "")
+        .replace(/^\d+:\s+/gm, "")
+        .trim();
+      return _profileGuidelines;
+    } catch {
+      // fallback
+    }
+  }
+
+  _profileGuidelines = `用户画像写作规范：
+- 视角：以 Proma（"我"）的口吻，第三人称（"TA"）书写；
+- 结构：用编号标题做内容分级，基本信息和行为模式放最上面，篇幅不超过600字；
+- 风格：像人物期刊——温暖、有情感色彩、鲜活；
+- 内容：从事件中读人，而非记事件。画像描述用户本身，而非用户做过什么；
+- 最后章节：固定为"Agent 需知"——记录操作性知识；
+- 不堆叠增加：更新前判断新信息是否已被覆盖或可合并，默认不加；
+- 不留元信息：正文中不出现"由XXX生成"、"最后更新于"等系统信息。`;
+  return _profileGuidelines;
+}
+
+// ---------- 构建记忆快照 ----------
+
+function buildMemorySnapshot(): MemorySnapshot {
+  const snapshot: MemorySnapshot = {
+    profile: "",
+    correctionsCount: 0,
+    sopCount: 0,
+    recentDiaries: [],
+    recentLogs: [],
+  };
+
+  if (existsSync(PATHS.profile)) {
+    const content = readFileSync(PATHS.profile, "utf-8");
+    snapshot.profile = content.length > 3000 ? content.slice(0, 3000) + "\n... [截断]" : content;
+  }
+
+  const corrections = loadJson<unknown[]>(PATHS.correctionsActive, []);
+  snapshot.correctionsCount = corrections.length;
+
+  const sopIndex = loadJson<{ id: string; title: string; status: string }[]>(PATHS.sopIndex, []);
+  snapshot.sopCount = sopIndex.length;
+
+  if (existsSync(PATHS.diary)) {
+    const { readdirSync } = require("fs");
+    const files = readdirSync(PATHS.diary)
+      .filter((f: string) => f.endsWith(".md"))
+      .sort()
+      .reverse()
+      .slice(0, 3);
+    for (const f of files) {
+      const content = readFileSync(join(PATHS.diary, f), "utf-8");
+      snapshot.recentDiaries.push(`[${f}]\n${content.slice(0, 500)}...`);
+    }
+  }
+
+  if (existsSync(PATHS.journal)) {
+    const { readdirSync } = require("fs");
+    const files = readdirSync(PATHS.journal)
+      .filter((f: string) => f.endsWith(".md"))
+      .sort()
+      .reverse()
+      .slice(0, 3);
+    for (const f of files) {
+      const content = readFileSync(join(PATHS.journal, f), "utf-8");
+      snapshot.recentLogs.push(`[${f}]\n${content.slice(0, 500)}...`);
+    }
+  }
+
+  return snapshot;
+}
+
+function snapshotToText(snapshot: MemorySnapshot): string {
+  const parts: string[] = [];
+  parts.push("=== 用户画像 (profile.md) ===");
+  parts.push(snapshot.profile || "(空)");
+  parts.push("\n=== 行为纠偏记录 ===");
+  parts.push(`共 ${snapshot.correctionsCount} 条活跃记录`);
+  parts.push("\n=== SOP 候选 ===");
+  parts.push(`共 ${snapshot.sopCount} 个候选`);
+  if (snapshot.recentDiaries.length > 0) {
+    parts.push("\n=== 最近日记 ===");
+    parts.push(snapshot.recentDiaries.join("\n\n"));
+  }
+  if (snapshot.recentLogs.length > 0) {
+    parts.push("\n=== 最近记忆日志 ===");
+    parts.push(snapshot.recentLogs.join("\n\n"));
+  }
+  return parts.join("\n");
+}
+
+// ---------- 列出记忆目录结构 ----------
+
+function listMemoryStructure(): string {
+  const { readdirSync, statSync } = require("fs");
+
+  function buildTree(dir: string, prefix: string = ""): string[] {
+    const lines: string[] = [];
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(dir).sort();
+    } catch {
+      return lines;
+    }
+    entries = entries.filter((e: string) => e !== ".DS_Store");
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const path = join(dir, entry);
+      const isLast = i === entries.length - 1;
+      const connector = isLast ? "└── " : "├── ";
+      const childPrefix = isLast ? "    " : "│   ";
+
+      try {
+        const stat = statSync(path);
+        if (stat.isDirectory()) {
+          lines.push(`${prefix}${connector}${entry}/`);
+          lines.push(...buildTree(path, prefix + childPrefix));
+        } else {
+          const size = stat.size < 1024 ? `${stat.size}B` : `${(stat.size / 1024).toFixed(1)}KB`;
+          lines.push(`${prefix}${connector}${entry} (${size})`);
+        }
+      } catch {
+        lines.push(`${prefix}${connector}${entry} (?)`);
+      }
+    }
+    return lines;
+  }
+
+  const lines: string[] = [];
+  lines.push(`记忆根目录: ${PATHS.memory}`);
+  lines.push("");
+  lines.push(".memory/");
+  lines.push(...buildTree(PATHS.memory, ""));
+  return lines.join("\n");
+}
+
+// ---------- 操作执行 ----------
+
+function runMemoryOps(command: string, args: string[]): { success: boolean; result: string } {
+  try {
+    const scriptPath = join(PATHS.projectRoot, "src/scripts/memory-ops.ts");
+    const result = execFileSync("npx", ["tsx", scriptPath, command, ...args], {
+      encoding: "utf-8",
+      cwd: PATHS.projectRoot,
+      timeout: 30000,
+    });
+    return { success: true, result: result.trim() };
+  } catch (err: any) {
+    const errorMsg = `操作失败: ${err.message}${err.stderr ? "\n" + err.stderr : ""}`;
+    return { success: false, result: errorMsg };
+  }
+}
+
+function executeSingleOperation(op: EditOperation): OperationResult {
+  const operation = op.operation.toLowerCase();
+
+  // Profile 操作 —— 返回指导信息，不直接写入
+  if (operation.startsWith("profile:")) {
+    const profilePath = PATHS.profile;
+    const guidelines = loadProfileGuidelines();
+
+    return {
+      op,
+      success: true, // 返回指导不算失败，但也不是真正修改了文件
+      result: `⚠️ 画像（profile.md）不支持通过脚本直接修改。
+
+文件路径：${profilePath}
+
+${guidelines}
+
+${op.section ? `目标段落："${op.section}"` : "请在文件中找到合适的位置进行编辑"}
+${op.content ? `\n建议内容：\n${op.content}` : ""}
+
+注意：画像只能编辑，不允许重新创建或删除。`,
+    };
+  }
+
+  // Correction 操作
+  if (operation.startsWith("correction:")) {
+    if (op.action === "add") {
+      const { success, result } = runMemoryOps("correction:add", [
+        "--type", "user-preference",
+        "--target", op.target || "general",
+        "--summary", op.content || "",
+        "--detail", op.content || "",
+        "--source", "memory-edit",
+      ]);
+      return { op, success, result };
+    }
+    if (op.action === "edit") {
+      if (!op.target) {
+        return { op, success: false, result: "编辑失败: 未指定 correction ID", error: "MISSING_TARGET" };
+      }
+      const { success, result } = runMemoryOps("correction:edit", [
+        "--id", op.target,
+        ...(op.content ? ["--summary", op.content, "--detail", op.content] : []),
+      ]);
+      return { op, success, result };
+    }
+    if (op.action === "delete") {
+      if (!op.target) {
+        return { op, success: false, result: "删除失败: 未指定 correction ID", error: "MISSING_TARGET" };
+      }
+      const { success, result } = runMemoryOps("correction:delete", [
+        "--id", op.target,
+      ]);
+      return { op, success, result };
+    }
+    return { op, success: false, result: `未知的 correction 操作: ${op.action}`, error: "UNKNOWN_ACTION" };
+  }
+
+  // SOP 操作
+  if (operation.startsWith("sop:")) {
+    if (op.action === "create") {
+      const { success, result } = runMemoryOps("sop:create", [
+        "--title", op.target || "新SOP",
+        "--content", op.content || "",
+        "--source", "memory-edit",
+      ]);
+      return { op, success, result };
+    }
+    if (op.action === "update") {
+      const { success, result } = runMemoryOps("sop:update", [
+        "--id", op.target || "",
+        "--content", op.content || "",
+      ]);
+      return { op, success, result };
+    }
+    if (op.action === "delete") {
+      const { success, result } = runMemoryOps("sop:delete", [
+        "--id", op.target || "",
+      ]);
+      return { op, success, result };
+    }
+    return { op, success: false, result: `未知的 SOP 操作: ${op.action}`, error: "UNKNOWN_ACTION" };
+  }
+
+  // Fallback
+  return {
+    op,
+    success: false,
+    result: `❌ 无法执行操作: ${op.operation} / ${op.action}\n原因：该操作类型不被支持。`,
+    error: "UNSUPPORTED_OPERATION",
+  };
+}
+
+async function executeOperations(operations: EditOperation[]): Promise<OperationResult[]> {
+  const results: OperationResult[] = [];
+
+  for (const op of operations) {
+    console.error(`[memory-edit] 执行操作: ${op.operation} / ${op.action} (target: ${op.target})`);
+    const result = executeSingleOperation(op);
+    results.push(result);
+    console.error(`[memory-edit] 操作结果: ${result.success ? "成功" : "失败"}`);
+  }
+
+  return results;
+}
+
+// ---------- 操作层重试 ----------
+
+async function retryWithCorrection(
+  failedResults: OperationResult[],
+  originalInstruction: string,
+  snapshotText: string,
+  previousPlan: EditPlan
+): Promise<EditPlan | null> {
+  const errorContext = failedResults
+    .filter((r) => !r.success)
+    .map((r) => {
+      const errorCode = r.error || "UNKNOWN";
+      return `- 操作: ${r.op.operation} / ${r.op.action}\n  目标: ${r.op.target}\n  错误码: ${errorCode}\n  错误信息: ${r.result}`;
+    })
+    .join("\n");
+
+  const retryPrompt = `你是记忆操作纠错助手。之前的一批操作中有部分失败，请分析错误原因并输出修正后的操作计划。
+
+原始需求: "${originalInstruction}"
+
+之前的操作计划（部分失败）：
+${JSON.stringify(previousPlan, null, 2)}
+
+失败详情：
+${errorContext}
+
+请输出修正后的 JSON 操作计划。要求：
+- 只修正失败的操作
+- 如果某个操作确实无法修正（如目标 ID 不存在），将其移除
+- 保持其他成功操作不变（不需要重新执行）
+- 输出格式: { "operations": [...] }
+- 每个 operation 字段同之前：operation, target, action, content, section, reasoning`;
+
+  try {
+    const corrected = await callLLMJson<EditPlan>(retryPrompt, {
+      system: "你是一个记忆操作纠错助手。只输出 JSON，不输出其他内容。",
+      temperature: 0.2,
+      retries: 2,
+    });
+    return corrected;
+  } catch (err: any) {
+    console.error(`[memory-edit] 纠错调用失败: ${err.message}`);
+    return null;
+  }
+}
+
+// ---------- 结果格式化 ----------
+
+function formatResults(results: OperationResult[], includeProfileGuidelines: boolean): string {
+  const lines: string[] = [];
+  const profileOps = results.filter((r) => r.op.operation.toLowerCase().startsWith("profile:"));
+  const otherOps = results.filter((r) => !r.op.operation.toLowerCase().startsWith("profile:"));
+
+  // Profile 操作结果（规范只返回一次）
+  if (profileOps.length > 0) {
+    lines.push("\n📋 Profile 编辑指导");
+    lines.push("=".repeat(40));
+    for (const r of profileOps) {
+      lines.push(`\n[${r.op.operation}] ${r.op.action}`);
+      lines.push(`目标: ${r.op.target || "profile.md"}`);
+      if (r.op.section) lines.push(`段落: ${r.op.section}`);
+      if (r.op.reasoning) lines.push(`理由: ${r.op.reasoning}`);
+    }
+    // 规范只附加一次
+    if (includeProfileGuidelines) {
+      lines.push("\n" + "-".repeat(40));
+      lines.push(loadProfileGuidelines());
+      lines.push("-".repeat(40));
+      lines.push("\n⚠️ 请使用 Edit 工具手动编辑 profile.md。画像只能编辑，不允许重新创建或删除。");
+    }
+  }
+
+  // 其他操作结果
+  if (otherOps.length > 0) {
+    lines.push("\n🔧 执行结果");
+    lines.push("=".repeat(40));
+    for (const r of otherOps) {
+      const status = r.success ? "✅" : "❌";
+      lines.push(`\n${status} [${r.op.operation}] ${r.op.action}`);
+      lines.push(`目标: ${r.op.target}`);
+      if (r.op.reasoning) lines.push(`理由: ${r.op.reasoning}`);
+      lines.push(`结果: ${r.result}`);
+      if (r.error) lines.push(`错误码: ${r.error}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// ---------- LLM 规划 ----------
+
+async function generatePlan(instruction: string, snapshotText: string): Promise<EditPlan> {
+  const planPrompt = `你是记忆操作规划助手。请分析用户的操作需求，输出一个或多个结构化操作计划。
+
+当前日期: ${today()}
+
+当前记忆状态：
+${snapshotText}
+
+用户操作需求: "${instruction}"
+
+请输出 JSON 格式的操作计划数组：
+{
+  "operations": [
+    {
+      "operation": "操作类型",
+      "target": "操作目标",
+      "action": "append|edit|create|delete",
+      "content": "内容",
+      "section": "段落（profile用）",
+      "reasoning": "理由"
+    }
+  ]
+}
+
+可用操作：
+- profile:append/edit/create → 返回画像编辑指导（脚本不写入，Agent手动Edit）
+- correction:add/edit/delete → 纠偏记录增删改
+- sop:create/update/delete → SOP增删改
+
+注意：
+- 可以输出多个 operation，批量执行
+- 只输出 JSON，不要其他内容
+- content 必须包含完整可直接写入的内容
+- profile 只能编辑，脚本只返回指导`;
+
+  return callLLMJson<EditPlan>(planPrompt, {
+    system: "你是一个精准的记忆操作规划助手。只输出 JSON，不输出任何其他内容。",
+    temperature: 0.2,
+  });
+}
+
+// ---------- 主流程 ----------
+
+async function main() {
+  const { mode, instruction } = parseArgs();
+
+  if (mode === "list") {
+    console.log(listMemoryStructure());
+    return;
+  }
+
+  console.error(`[memory-edit] 操作需求: ${instruction}`);
+
+  const snapshot = buildMemorySnapshot();
+  const snapshotText = snapshotToText(snapshot);
+  console.error("[memory-edit] 已加载记忆快照");
+
+  // 第一轮：生成计划并执行
+  let plan = await generatePlan(instruction, snapshotText);
+  console.error(`[memory-edit] 生成 ${plan.operations.length} 个操作`);
+
+  let results = await executeOperations(plan.operations);
+
+  // 操作层重试：如果有失败，尝试纠错重试（最多1轮）
+  const failedResults = results.filter((r) => !r.success);
+  if (failedResults.length > 0) {
+    console.error(`[memory-edit] ${failedResults.length} 个操作失败，尝试纠错重试...`);
+    const correctedPlan = await retryWithCorrection(failedResults, instruction, snapshotText, plan);
+
+    if (correctedPlan && correctedPlan.operations.length > 0) {
+      console.error(`[memory-edit] 纠错后生成 ${correctedPlan.operations.length} 个操作`);
+      const retryResults = await executeOperations(correctedPlan.operations);
+
+      // 合并结果：成功的替换原来的失败结果
+      for (const retryResult of retryResults) {
+        const originalIndex = results.findIndex(
+          (r) => !r.success && r.op.operation === retryResult.op.operation && r.op.target === retryResult.op.target
+        );
+        if (originalIndex >= 0 && retryResult.success) {
+          results[originalIndex] = retryResult;
+        } else {
+          results.push(retryResult);
+        }
+      }
+    } else {
+      console.error("[memory-edit] 纠错重试未能生成有效计划");
+    }
+  }
+
+  // 输出最终结果
+  const hasProfileOps = results.some((r) => r.op.operation.toLowerCase().startsWith("profile:"));
+  console.log(formatResults(results, hasProfileOps));
+}
+
+main().catch((err) => {
+  console.error("[memory-edit] Error:", err);
+  process.exit(1);
+});

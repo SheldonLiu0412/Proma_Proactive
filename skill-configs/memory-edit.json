@@ -1,0 +1,11 @@
+{
+  "name": "memory-edit",
+  "version": "1.0.0",
+  "description": "修改用户的长期记忆。仅当用户明确主动要求修改记忆、更新画像、添加/删除记录时才调用。操作前必须向用户确认。不允许在普通对话中自行启动。",
+  "numbered": true,
+  "components": [
+    "memory-edit/head",
+    "memory-edit/instruction",
+    "memory-edit/complete"
+  ]
+}
