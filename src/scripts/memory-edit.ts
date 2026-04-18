@@ -19,6 +19,7 @@ import { join, dirname } from "path";
 import { execFileSync } from "child_process";
 import { callLLM, callLLMJson } from "../utils/llm-client";
 import { PATHS } from "../utils/paths.mjs";
+import { todayStr } from "../utils/time";
 
 // ---------- 类型定义 ----------
 
@@ -82,7 +83,7 @@ function parseArgs(): { mode: "edit" | "list"; instruction: string } {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayStr();
 }
 
 function loadJson<T>(path: string, fallback: T): T {

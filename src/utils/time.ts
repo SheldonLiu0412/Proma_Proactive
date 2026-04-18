@@ -81,6 +81,37 @@ export function formatTimestamp(ms: number): string {
 }
 
 /**
+ * 获取指定时区的今天日期字符串（YYYY-MM-DD）。
+ * 使用 Intl.DateTimeFormat 避免依赖运行时系统时区。
+ */
+export function todayStr(timezone = "Asia/Shanghai"): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = new Map(parts.map((p) => [p.type, p.value]));
+  return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
+}
+
+/**
+ * 获取指定时区 N 天前的日期字符串（YYYY-MM-DD）。
+ */
+export function daysAgoStr(n: number, timezone = "Asia/Shanghai"): string {
+  const now = new Date();
+  now.setDate(now.getDate() - n);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const values = new Map(parts.map((p) => [p.type, p.value]));
+  return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
+}
+
+/**
  * 毫秒差值 → 可读时长
  */
 export function formatDuration(ms: number): string {

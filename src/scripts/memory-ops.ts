@@ -27,6 +27,7 @@
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
 import { PATHS } from "../utils/paths.mjs";
+import { todayStr } from "../utils/time";
 
 // ---------- 工具函数 ----------
 
@@ -48,7 +49,7 @@ function appendJsonl(path: string, data: unknown): void {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayStr();
 }
 
 function genId(prefix: string, items: Array<{ id: string }>): string {
