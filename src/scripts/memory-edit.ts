@@ -430,7 +430,7 @@ async function retryWithCorrection(
     })
     .join("\n");
 
-  const retryPrompt = `你是记忆操作纠错助手。之前的一批操作中有部分失败，请分析错误原因并输出修正后的操作计划。
+  const retryPrompt = `你是 Proma Memory 记忆系统。之前的一批操作中有部分失败，请分析错误原因并输出修正后的操作计划。
 
 原始需求: "${originalInstruction}"
 
@@ -449,7 +449,7 @@ ${errorContext}
 
   try {
     const corrected = await callLLMJson<EditPlan>(retryPrompt, {
-      system: "你是一个记忆操作纠错助手。只输出 JSON，不输出其他内容。",
+      system: "你是 Proma Memory 记忆系统。只输出 JSON，不输出其他内容。",
       temperature: 0.2,
       retries: 2,
     });
@@ -538,7 +538,7 @@ function buildTargetContext(): string {
 async function generatePlan(instruction: string, snapshotText: string): Promise<EditPlan> {
   const targetContext = buildTargetContext();
 
-  const planPrompt = `你是记忆操作规划助手。请分析用户的操作需求，输出一个或多个结构化操作计划。
+  const planPrompt = `你是 Proma Memory 记忆系统。请分析用户的操作需求，输出一个或多个结构化记忆操作计划。
 
 当前日期: ${today()}
 
@@ -548,7 +548,7 @@ ${snapshotText}
 可操作的完整目标列表：
 ${targetContext}
 
-用户操作需求: "${instruction}"
+用户提供的操作需求: "${instruction}"
 
 请输出 JSON 格式的操作计划数组：
 {
@@ -611,7 +611,11 @@ async function main() {
   // 操作层重试：如果有失败，尝试纠错重试（最多1轮）
   const failedResults = results.filter((r) => !r.success);
   if (failedResults.length > 0) {
-    console.error(`[memory-edit] ${failedResults.length} 个操作失败，尝试纠错重试...`);
+    const failDetails = failedResults.map((r) => {
+      const code = r.error || "UNKNOWN";
+      return `${r.op.operation}/${r.op.action}(target=${r.op.target}): [${code}] ${r.result.slice(0, 100)}`;
+    }).join("; ");
+    console.error(`[memory-edit] ${failedResults.length} 个操作失败，尝试纠错重试... 失败详情: ${failDetails}`);
     const correctedPlan = await retryWithCorrection(failedResults, instruction, snapshotText, plan);
 
     if (correctedPlan && correctedPlan.operations.length > 0) {
