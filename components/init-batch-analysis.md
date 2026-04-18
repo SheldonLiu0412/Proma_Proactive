@@ -24,7 +24,7 @@
 1. 读取 `/tmp/memory-init-batches.json` 中 `batches[0].sessionIds`，获取本批会话 ID 列表
 2. 读取每个会话的摘要文件：`/tmp/memory-init-digests/<sessionId>.md`
 3. 分析摘要，提取用户画像、SOP 候选、纠正与偏好（各类规范详见工作指南）
-4. 这是初始化首建批：读取 `{{MEMORY_ROOT}}/profile-template.md`，按模板结构创建 `{{MEMORY_ROOT}}/profile.md`
+4. 这是初始化首建批：读取 `{{PROJECT_ROOT}}/docs/profile-template.md`，按模板结构创建 `{{MEMORY_ROOT}}/profile.md`
 5. SOP、corrections、偏好等结构化记忆**必须通过脚本写入**（`sop:create`、`correction:add`），严禁直接 Write/Edit 这些文件
 6. 标记完成（见工作指南）
 
