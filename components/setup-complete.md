@@ -4,7 +4,7 @@
 
 1. `{{PROJECT_ROOT}}/config/memory-instance.local.json` 已存在且内容完整
 2. `{{PROJECT_ROOT}}/skills/` 下已生成最新的 `SKILL.md`
-3. `~/.proma/agent-workspaces/<slug>/skills/` 下已同步最新 skills
+3. `$HOME/.proma/agent-workspaces/<slug>/skills/` 下已同步核心 skills（memory-daily、memory-edit、memory-init、memory-init-review、memory-search），**不应有 memory-setup**
 
 - 检查出现问题则回退前置步骤检查；若检查无误，则直接告知用户后续的完整使用方式。
 
@@ -61,6 +61,6 @@
 
 **第四步：告知注意事项**
 - 当前是一个Demo版本，使用方法有些笨，不同用户间效果差异大，仅用于测试记忆提炼效果；后续将通过 Proma 插件市场方式提供更完整更丰富的集成功能，例如后台执行、自适应启动/手动调用的记忆检索工具，记忆管理面板等等，详见 https://github.com/SheldonLiu0412/Proma_Proactive 后续开发计划；
-- 当前流程已完毕，可以在设置-配置中关闭 memory-setup skill，已经不再用到
+- 当前流程已完毕，memory-setup 仅用于首次安装引导，安装完成后即可结束当前会话
 
 
