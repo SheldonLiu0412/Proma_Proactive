@@ -17,12 +17,13 @@
  */
 
 import { writeFileSync, existsSync, mkdirSync } from "fs";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
 import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 import { PATHS } from "../utils/paths.mjs";
 import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { formatTimestamp } from "../utils/time.js";
+import { getNpxCommand } from "../utils/command.js";
 import {
   countJsonlLines,
   countUserTurns,
@@ -60,6 +61,10 @@ interface GatherAllResult {
     totalFiltered: number;
     totalValid: number;
   };
+}
+
+function ensureParentDir(filePath: string) {
+  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 // ---------- 主逻辑 ----------
@@ -253,6 +258,8 @@ function main() {
       summary: { ...result.summary, totalValid: result.sessions.length },
     };
 
+    ensureParentDir(`${basePath}-part1.json`);
+    ensureParentDir(`${basePath}-part2.json`);
     writeFileSync(`${basePath}-part1.json`, JSON.stringify(part1, null, 2), "utf-8");
     writeFileSync(`${basePath}-part2.json`, JSON.stringify(part2, null, 2), "utf-8");
 
@@ -283,7 +290,7 @@ function main() {
       }
       try {
         execFileSync(
-          "npx",
+          getNpxCommand(),
           ["tsx", extractScript, "--id", sess.id, "--type", sess.type, "--output", outFile],
           { cwd, stdio: "pipe", timeout: 30000 }
         );

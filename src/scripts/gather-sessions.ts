@@ -16,11 +16,12 @@
 
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { execFileSync } from "child_process";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
 import { PATHS } from "../utils/paths.mjs";
 import { fileURLToPath } from "url";
 import { loadMemoryInstanceConfig } from "../utils/instance-config.mjs";
 import { getDayRange, formatTimestamp } from "../utils/time.js";
+import { getNpxCommand } from "../utils/command.js";
 import {
   countJsonlLines,
   getLastMessageTimestamp,
@@ -74,6 +75,10 @@ interface GatherResult {
     totalUpdated: number;
     totalSkipped: number;
   };
+}
+
+function ensureParentDir(filePath: string) {
+  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 // ---------- 主逻辑 ----------
@@ -256,6 +261,7 @@ function main() {
   const json = JSON.stringify(result, null, 2);
 
   if (outputPath) {
+    ensureParentDir(outputPath);
     writeFileSync(outputPath, json, "utf-8");
     console.log(
       `Gathered ${result.summary.totalNew} new + ${result.summary.totalUpdated} updated sessions → ${outputPath}`
@@ -280,7 +286,7 @@ function main() {
       try {
         const fromArgs = sess.kind === "updated" ? ["--from", String(sess.incrementalFrom)] : [];
         execFileSync(
-          "npx",
+          getNpxCommand(),
           ["tsx", extractScript, "--id", sess.id, "--type", sess.type, ...fromArgs, "--output", outFile],
           { cwd, stdio: "pipe", timeout: 30000 }
         );
@@ -300,7 +306,7 @@ function main() {
     const planScript = resolve(scriptDir, "plan-batches.ts");
     const cwd = resolve(scriptDir, "..", "..");
     execFileSync(
-      "npx",
+      getNpxCommand(),
       ["tsx", planScript, "--mode", "daily", "--input", outputPath, "--output", planBatchesPath],
       { cwd, stdio: "inherit" }
     );

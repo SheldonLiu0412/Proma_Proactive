@@ -20,6 +20,7 @@ import { execFileSync } from "child_process";
 import { callLLM, callLLMJson } from "../utils/llm-client";
 import { PATHS } from "../utils/paths.mjs";
 import { todayStr } from "../utils/time";
+import { getNpxCommand } from "../utils/command.js";
 
 // ---------- 类型定义 ----------
 
@@ -271,7 +272,7 @@ function releaseLock(): void {
 function runMemoryOps(command: string, args: string[]): { success: boolean; result: string } {
   try {
     const scriptPath = join(PATHS.projectRoot, "src/scripts/memory-ops.ts");
-    const result = execFileSync("npx", ["tsx", scriptPath, command, ...args], {
+    const result = execFileSync(getNpxCommand(), ["tsx", scriptPath, command, ...args], {
       encoding: "utf-8",
       cwd: PATHS.projectRoot,
       timeout: 30000,

@@ -35,7 +35,8 @@
  * }
  */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { dirname } from "path";
 
 // ---------- 类型 ----------
 
@@ -66,6 +67,10 @@ interface BatchPlan {
 
 function loadJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf-8")) as T;
+}
+
+function ensureParentDir(filePath: string) {
+  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -221,6 +226,7 @@ function main() {
     };
   }
 
+  ensureParentDir(outputPath);
   writeFileSync(outputPath, JSON.stringify(plan, null, 2), "utf-8");
 
   // 输出摘要到 stdout

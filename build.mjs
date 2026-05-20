@@ -57,6 +57,25 @@ function isStructuralComponent(name) {
   return basename === 'head' || basename.startsWith('footer-');
 }
 
+function getPlatformComponents(config) {
+  const platformComponents = config.platformComponents;
+  if (!platformComponents || typeof platformComponents !== 'object') {
+    return [];
+  }
+  const components = platformComponents[process.platform];
+  return Array.isArray(components) ? components : [];
+}
+
+function mergeComponents(baseComponents, extraComponents) {
+  if (extraComponents.length === 0) {
+    return baseComponents;
+  }
+  if (baseComponents.length === 0) {
+    return extraComponents;
+  }
+  return [baseComponents[0], ...extraComponents, ...baseComponents.slice(1)];
+}
+
 /**
  * 给组件内容的第一个 `## ` 标题加上阶段序号前缀
  * "## 原标题" → "## 阶段 N：原标题"
@@ -81,6 +100,7 @@ function buildSkill(configPath) {
     version,
     description,
     components,
+    platformComponents,
     output,          // 可选：自定义输出路径（相对于项目根目录）
     hasFrontmatter = true,  // 默认生成 frontmatter
     numbered = false,       // 是否给 body 组件加阶段序号
@@ -100,7 +120,11 @@ function buildSkill(configPath) {
 
   // 拼接各组件
   let phaseCounter = 0;
-  const sections = components.map(componentName => {
+  const resolvedComponents = mergeComponents(
+    components,
+    getPlatformComponents({ platformComponents })
+  );
+  const sections = resolvedComponents.map(componentName => {
     let content = readComponent(componentName, doRender);
 
     if (numbered && !isStructuralComponent(componentName)) {
